@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/marketplace.css';
+import API_BASE from '../config/api';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: Store },
@@ -70,8 +71,8 @@ export default function Marketplace() {
     const fetchData = async () => {
       try {
         const [sellersRes, productsRes] = await Promise.all([
-          fetch('/api/marketplace/sellers'),
-          fetch('/api/marketplace/products')
+          fetch(`${API_BASE}/api/marketplace/sellers`),
+          fetch(`${API_BASE}/api/marketplace/products`)
         ]);
         
         const sellersData = await sellersRes.json();
@@ -99,7 +100,7 @@ export default function Marketplace() {
     const fetchSellerStatus = async () => {
       setSellerStatusLoading(true);
       try {
-        const res = await fetch('/api/marketplace/seller-request/my', {
+        const res = await fetch(`${API_BASE}/api/marketplace/seller-request/my`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -143,7 +144,7 @@ export default function Marketplace() {
       return;
     }
     try {
-      const res = await fetch('/api/cart/add', {
+      const res = await fetch(`${API_BASE}/api/cart/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -174,7 +175,7 @@ export default function Marketplace() {
       const formData = new FormData();
       formData.append('image', file);
       
-      const response = await fetch('/api/upload/product', {
+      const response = await fetch(`${API_BASE}/api/upload/product`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -201,7 +202,7 @@ export default function Marketplace() {
       const formData = new FormData();
       formData.append('image', file);
       
-      const response = await fetch('/api/upload/seller', {
+      const response = await fetch(`${API_BASE}/api/upload/seller`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -234,7 +235,7 @@ export default function Marketplace() {
     const form = e.target;
     
     try {
-      const response = await fetch('/api/marketplace/products', {
+      const response = await fetch(`${API_BASE}/api/marketplace/products`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -272,7 +273,7 @@ export default function Marketplace() {
     const form = e.target;
     
     try {
-      const response = await fetch('/api/marketplace/seller-request', {
+      const response = await fetch(`${API_BASE}/api/marketplace/seller-request`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

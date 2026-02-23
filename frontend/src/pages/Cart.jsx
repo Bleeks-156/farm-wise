@@ -14,6 +14,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import '../styles/cart.css';
+import API_BASE from '../config/api';
 
 export default function Cart() {
   const { token } = useAuth();
@@ -26,7 +27,7 @@ export default function Cart() {
 
   const fetchCart = async () => {
     try {
-      const res = await fetch('/api/cart', {
+      const res = await fetch(`${API_BASE}/api/cart`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -48,7 +49,7 @@ export default function Cart() {
     if (newQty < 1) return;
     setUpdating(itemId);
     try {
-      const res = await fetch('/api/cart/update', {
+      const res = await fetch(`${API_BASE}/api/cart/update`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +93,7 @@ export default function Cart() {
 
   const clearCart = async () => {
     try {
-      await fetch('/api/cart/clear', {
+      await fetch(`${API_BASE}/api/cart/clear`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -108,7 +109,7 @@ export default function Cart() {
     try {
       // Checkout the first item for now (Stripe supports one product per session in our setup)
       // For a full cart checkout, you'd create a multi-line-item session
-      const res = await fetch('/api/payment/create-checkout-session', {
+      const res = await fetch(`${API_BASE}/api/payment/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

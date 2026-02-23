@@ -16,6 +16,7 @@ import {
   Star
 } from 'lucide-react';
 import '../styles/seller-details.css';
+import API_BASE from '../config/api';
 
 const CATEGORIES = [
   { id: 'seeds', label: 'Seeds' },
@@ -137,7 +138,7 @@ export default function SellerDetails() {
       const formData = new FormData();
       formData.append('image', file);
       
-      const response = await fetch('/api/upload/seller', {
+      const response = await fetch(`${API_BASE}/api/upload/seller`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData

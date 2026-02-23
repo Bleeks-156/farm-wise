@@ -4,6 +4,7 @@ import { User, Shield, Mail, ArrowLeft, Phone, MapPin, Camera, Loader, Edit3, X,
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import '../styles/profile.css';
+import API_BASE from '../config/api';
 
 export default function Profile() {
   const { user, token, login } = useAuth();
@@ -59,7 +60,7 @@ export default function Profile() {
     if (!token || isAdmin) return;
     const fetchSellerStatus = async () => {
       try {
-        const res = await fetch('/api/marketplace/seller-request/my', {
+        const res = await fetch(`${API_BASE}/api/marketplace/seller-request/my`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -97,7 +98,7 @@ export default function Profile() {
     const fetchOrders = async () => {
       setOrdersLoading(true);
       try {
-        const res = await fetch('/api/payment/orders', {
+        const res = await fetch(`${API_BASE}/api/payment/orders`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -117,13 +118,13 @@ export default function Profile() {
       setProductsLoading(true);
       try {
         if (isAdmin) {
-          const res = await fetch('/api/marketplace/all-products-admin', {
+          const res = await fetch(`${API_BASE}/api/marketplace/all-products-admin`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await res.json();
           if (data.success) setAllProducts(data.products);
         }
-        const res2 = await fetch('/api/marketplace/my-products', {
+        const res2 = await fetch(`${API_BASE}/api/marketplace/my-products`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data2 = await res2.json();
@@ -220,7 +221,7 @@ export default function Profile() {
     setSaveSuccess(false);
 
     try {
-      const response = await fetch('/api/auth/profile', {
+      const response = await fetch(`${API_BASE}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -284,7 +285,7 @@ export default function Profile() {
       const formData = new FormData();
       formData.append('image', file);
 
-      const response = await fetch('/api/upload/profile', {
+      const response = await fetch(`${API_BASE}/api/upload/profile`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

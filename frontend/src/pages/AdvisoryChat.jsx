@@ -3,6 +3,7 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { MessageCircle, MapPin, Sprout, CalendarDays, Send, Info, Search, Loader, ChevronDown, History, Plus, Trash2, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/advisory-chat.css';
+import API_BASE from '../config/api';
 
 export default function AdvisoryChat() {
   const location = useLocation();
@@ -63,7 +64,7 @@ export default function AdvisoryChat() {
     if (!token) return;
     try {
       setIsLoadingHistory(true);
-      const res = await fetch('/api/chat-history', { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/api/chat-history`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) setChatList(data.chats);
     } catch (err) {
@@ -107,7 +108,7 @@ export default function AdvisoryChat() {
     if (!token) return null;
     try {
       const initialMsg = { role: 'assistant', text: getInitialMessage(), explanation: null };
-      const res = await fetch('/api/chat-history', {
+      const res = await fetch(`${API_BASE}/api/chat-history`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
@@ -426,7 +427,7 @@ export default function AdvisoryChat() {
     try {
       // Because Vite is proxying /api -> backend (see vite.config.js),
       // we can call the backend route directly with a relative URL.
-      const response = await fetch('/api/advisory/chat', {
+      const response = await fetch(`${API_BASE}/api/advisory/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

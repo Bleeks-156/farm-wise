@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Sun, Moon, User, LogOut, ShoppingCart } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import API_BASE from '../config/api';
 import '../styles/navbar.css';
 
 export default function Navbar() {
@@ -19,7 +20,7 @@ export default function Navbar() {
     if (!token) { setCartCount(0); return; }
     const fetchCount = async () => {
       try {
-        const res = await fetch('/api/cart/count', {
+        const res = await fetch(`${API_BASE}/api/cart/count`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();

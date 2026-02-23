@@ -29,6 +29,7 @@ import {
   Share2
 } from 'lucide-react';
 import '../styles/product-details.css';
+import API_BASE from '../config/api';
 
 const CATEGORIES = [
   { id: 'seeds', label: 'Seeds' },
@@ -113,7 +114,7 @@ export default function ProductDetails() {
 
   const fetchSellers = async () => {
     try {
-      const response = await fetch('/api/marketplace/sellers');
+      const response = await fetch(`${API_BASE}/api/marketplace/sellers`);
       const data = await response.json();
       if (data.success) {
         setSellers(data.sellers);
@@ -172,7 +173,7 @@ export default function ProductDetails() {
       return;
     }
     try {
-      const res = await fetch('/api/cart/add', {
+      const res = await fetch(`${API_BASE}/api/cart/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -202,7 +203,7 @@ export default function ProductDetails() {
 
     setIsCheckingOut(true);
     try {
-      const response = await fetch('/api/payment/create-checkout-session', {
+      const response = await fetch(`${API_BASE}/api/payment/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -239,7 +240,7 @@ export default function ProductDetails() {
       const formData = new FormData();
       formData.append('image', file);
       
-      const response = await fetch('/api/upload/product', {
+      const response = await fetch(`${API_BASE}/api/upload/product`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
