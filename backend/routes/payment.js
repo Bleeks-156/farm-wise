@@ -68,8 +68,8 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
         quantity: quantity,
       }],
       mode: 'payment',
-      success_url: `${req.headers.origin}/payment/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order._id}`,
-      cancel_url: `${req.headers.origin}/marketplace/product/${product._id}`,
+      success_url: `${req.headers.origin || process.env.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order._id}`,
+      cancel_url: `${req.headers.origin || process.env.FRONTEND_URL}/marketplace/product/${product._id}`,
       metadata: {
         orderId: order._id.toString(),
         productId: product._id.toString(),
