@@ -1,0 +1,159 @@
+:root {
+  --mayo-blue: #003DA5;
+  --mayo-slate: #54585A;
+  --mayo-light-bg: #f2f5f7;
+  --white: #ffffff;
+  --text-dark: #1a1a1a;
+  --link-color: #003DA5;
+  --success: #2e7d32;
+  --card-bg: #ffffff;
+  --border-subtle: rgba(226, 232, 240, 0.9);
+  --input-bg: #ffffff;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 20px rgba(15, 23, 42, 0.08);
+  --overlay-light: rgba(255, 255, 255, 0.45);
+  --overlay-light-strong: rgba(255, 255, 255, 0.55);
+  --bubble-user: #e0ecff;
+  --bubble-ai: #f1f5f9;
+  --surface-tint: #f9fafb;
+  --icon-bg: rgba(255, 255, 255, 0.95);
+  --danger: #c53030;
+  --nav-scrolled-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] {
+  --mayo-light-bg: #0f1114;
+  --white: #ffffff;
+  --text-dark: #e8eaed;
+  --mayo-slate: #b0b5ba;
+  --mayo-blue: #6b9fff;
+  --link-color: #6b9fff;
+  --success: #4caf50;
+  --card-bg: #1a1d24;
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --input-bg: #252830;
+  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.5);
+  --overlay-light: rgba(0, 0, 0, 0.5);
+  --overlay-light-strong: rgba(0, 0, 0, 0.6);
+  --bubble-user: rgba(107, 159, 255, 0.18);
+  --bubble-ai: rgba(255, 255, 255, 0.06);
+  --surface-tint: #15181e;
+  --icon-bg: rgba(26, 29, 36, 0.95);
+  --danger: #f87171;
+  --nav-scrolled-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  width: 100%;
+  max-width: 100%;
+}
+
+body {
+  font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  background-color: var(--mayo-light-bg);
+  color: var(--text-dark);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1;
+  text-rendering: optimizeLegibility;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+body.has-video-bg,
+body.has-profile-bg {
+  background-color: transparent;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Playfair Display', 'Roboto Slab', serif;
+}
+
+/* Page Transition Animation */
+.page-fade {
+  animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(12px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+/* Make all media elements fluid by default */
+img, picture, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Selection Styling */
+::selection {
+  background: rgba(0, 61, 165, 0.2);
+  color: var(--mayo-blue);
+}
+
+::-moz-selection {
+  background: rgba(0, 61, 165, 0.2);
+  color: var(--mayo-blue);
+}
+
+/* Responsive Grid System */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+button { 
+  cursor: pointer; 
+  transition: all 0.3s ease; 
+}
+
+button:focus {
+  outline: 2px solid var(--mayo-blue);
+  outline-offset: 2px;
+}
+
+/* Improved Link Styles */
+a {
+  color: var(--link-color);
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--mayo-blue);
+}
+
+/* Responsive Typography */
+@media (max-width: 768px) {
+  body {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+  
+  .container {
+    padding: 0 15px;
+  }
+}
