@@ -74,7 +74,7 @@ export default function Cart() {
   const removeItem = async (itemId) => {
     setUpdating(itemId);
     try {
-      const res = await fetch(`/api/cart/remove/${itemId}`, {
+      const res = await fetch(`${API_BASE}/api/cart/remove/${itemId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

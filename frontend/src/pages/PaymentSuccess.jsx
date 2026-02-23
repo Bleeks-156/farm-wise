@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import API_BASE from '../config/api';
 import { CheckCircle, Package, ArrowLeft, Loader, AlertCircle } from 'lucide-react';
 import '../styles/product-details.css';
 
@@ -22,7 +23,7 @@ export default function PaymentSuccess() {
 
   const verifyPayment = async () => {
     try {
-      const response = await fetch(`/api/payment/verify/${sessionId}`, {
+      const response = await fetch(`${API_BASE}/api/payment/verify/${sessionId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();

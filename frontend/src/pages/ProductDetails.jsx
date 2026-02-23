@@ -89,7 +89,7 @@ export default function ProductDetails() {
 
   const fetchProduct = async () => {
     try {
-      const response = await fetch(`/api/marketplace/products/${id}`);
+      const response = await fetch(`${API_BASE}/api/marketplace/products/${id}`);
       const data = await response.json();
       
       if (data.success) {
@@ -127,7 +127,7 @@ export default function ProductDetails() {
   const fetchUserRating = async () => {
     if (!token) return;
     try {
-      const response = await fetch(`/api/marketplace/products/${id}/rating`, {
+      const response = await fetch(`${API_BASE}/api/marketplace/products/${id}/rating`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -142,7 +142,7 @@ export default function ProductDetails() {
   const handleRating = async (rating) => {
     setRatingLoading(true);
     try {
-      const response = await fetch(`/api/marketplace/products/${id}/rate`, {
+      const response = await fetch(`${API_BASE}/api/marketplace/products/${id}/rate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -262,7 +262,7 @@ export default function ProductDetails() {
     setSaving(true);
     
     try {
-      const response = await fetch(`/api/marketplace/products/${id}`, {
+      const response = await fetch(`${API_BASE}/api/marketplace/products/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -287,7 +287,7 @@ export default function ProductDetails() {
 
   const handleDelete = async () => {
     try {
-      const response = await fetch(`/api/marketplace/products/${id}`, {
+      const response = await fetch(`${API_BASE}/api/marketplace/products/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

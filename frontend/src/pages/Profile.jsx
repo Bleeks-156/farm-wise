@@ -78,7 +78,7 @@ export default function Profile() {
     const fetchRequests = async () => {
       setRequestsLoading(true);
       try {
-        const res = await fetch(`/api/marketplace/seller-requests?status=${requestFilter}`, {
+        const res = await fetch(`${API_BASE}/api/marketplace/seller-requests?status=${requestFilter}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -142,7 +142,7 @@ export default function Profile() {
     if (stockValue === '' || Number(stockValue) < 0) return;
     setStockSaving(true);
     try {
-      const res = await fetch(`/api/marketplace/products/${productId}/stock`, {
+      const res = await fetch(`${API_BASE}/api/marketplace/products/${productId}/stock`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -169,7 +169,7 @@ export default function Profile() {
   const handleApproveRequest = async (requestId) => {
     setActionLoading(requestId);
     try {
-      const res = await fetch(`/api/marketplace/seller-requests/${requestId}/approve`, {
+      const res = await fetch(`${API_BASE}/api/marketplace/seller-requests/${requestId}/approve`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -191,7 +191,7 @@ export default function Profile() {
   const handleRejectRequest = async (requestId) => {
     setActionLoading(requestId);
     try {
-      const res = await fetch(`/api/marketplace/seller-requests/${requestId}/reject`, {
+      const res = await fetch(`${API_BASE}/api/marketplace/seller-requests/${requestId}/reject`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

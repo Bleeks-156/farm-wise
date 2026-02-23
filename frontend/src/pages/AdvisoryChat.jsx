@@ -79,7 +79,7 @@ export default function AdvisoryChat() {
     if (!token || !id) return;
     try {
       setIsLoadingChat(true);
-      const res = await fetch(`/api/chat-history/${id}`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/api/chat-history/${id}`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         const chat = data.chat;
@@ -137,7 +137,7 @@ export default function AdvisoryChat() {
   const saveMessages = useCallback(async (chatSessionId, newMessages) => {
     if (!token || !chatSessionId) return;
     try {
-      await fetch(`/api/chat-history/${chatSessionId}/messages`, {
+      await fetch(`${API_BASE}/api/chat-history/${chatSessionId}/messages`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ messages: newMessages })
@@ -152,7 +152,7 @@ export default function AdvisoryChat() {
   const saveContext = useCallback(async (chatSessionId, newContext) => {
     if (!token || !chatSessionId) return;
     try {
-      await fetch(`/api/chat-history/${chatSessionId}`, {
+      await fetch(`${API_BASE}/api/chat-history/${chatSessionId}`, {
         method: 'PUT',
         headers: authHeaders(),
         body: JSON.stringify({ context: newContext })
@@ -166,7 +166,7 @@ export default function AdvisoryChat() {
   const deleteChat = async (id) => {
     if (!token || !id) return;
     try {
-      const res = await fetch(`/api/chat-history/${id}`, {
+      const res = await fetch(`${API_BASE}/api/chat-history/${id}`, {
         method: 'DELETE',
         headers: authHeaders()
       });
