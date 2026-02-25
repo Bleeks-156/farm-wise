@@ -298,7 +298,7 @@
 
 /* Supplier grid */
 .marketplace-list {
-  padding-top: 8px;
+  padding-top: 120px; /* Space for sticky filters */
 }
 
 .marketplace-grid {
@@ -817,6 +817,10 @@
     padding: 12px 0;
     top: 65px; /* Mobile navbar height */
   }
+  
+  .marketplace-list {
+    padding-top: 100px; /* Less space needed on mobile */
+  }
 
   .marketplace-categories {
     gap: 8px;
@@ -870,6 +874,10 @@
 @media (max-width: 480px) {
   .marketplace-filters {
     top: 60px; /* Small mobile navbar height */
+  }
+  
+  .marketplace-list {
+    padding-top: 90px; /* Even less space on small mobile */
   }
   
   .marketplace-results-count {
