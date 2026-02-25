@@ -25,7 +25,7 @@ export default function Navbar() {
         });
         const data = await res.json();
         if (data.success) setCartCount(data.count);
-      } catch {}
+      } catch { }
     };
     fetchCount();
     const interval = setInterval(fetchCount, 10000);
@@ -69,6 +69,7 @@ export default function Navbar() {
           <Link to="/" className="navbar-link" onClick={() => setIsOpen(false)}>Home</Link>
           <Link to="/advisory" className="navbar-link" onClick={() => setIsOpen(false)}>AI Advisory</Link>
           <Link to="/marketplace" className="navbar-link" onClick={() => setIsOpen(false)}>Marketplace</Link>
+          <Link to="/disease-scan" className="navbar-link" onClick={() => setIsOpen(false)}>Disease Scan</Link>
           <Link to="/weather" className="navbar-link" onClick={() => setIsOpen(false)}>Weather</Link>
 
           {user && (
@@ -231,6 +232,7 @@ export default function Navbar() {
         <Link to="/" className="navbar-mobile-link" onClick={() => setIsOpen(false)}>Home</Link>
         <Link to="/advisory" className="navbar-mobile-link" onClick={() => setIsOpen(false)}>AI Advisory</Link>
         <Link to="/marketplace" className="navbar-mobile-link" onClick={() => setIsOpen(false)}>Marketplace</Link>
+        <Link to="/disease-scan" className="navbar-mobile-link" onClick={() => setIsOpen(false)}>Disease Scan</Link>
         <Link to="/weather" className="navbar-mobile-link" onClick={() => setIsOpen(false)}>Weather</Link>
         {user ? (
           <>
