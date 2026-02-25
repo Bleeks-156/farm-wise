@@ -37,3 +37,13 @@ coverage/
 
 # Misc
 .cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+disease-api/.venv/
+disease-api/venv/
+
+# Disease API — downloaded model assets (auto-downloaded from Google Drive at runtime)
+disease-api/assets/
