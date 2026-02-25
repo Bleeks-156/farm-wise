@@ -104,7 +104,16 @@ print(f"[model] {len(class_labels)} disease classes loaded.")
 
 # ── Flask app ─────────────────────────────────────────────────────────────────
 app   = Flask(__name__)
-CORS(app, origins="*")   # Allow Netlify + localhost
+CORS(app, origins="*", supports_credentials=False)
+
+# Belt-and-suspenders: manually add CORS headers on EVERY response
+# This ensures headers are present even on error responses
+@app.after_request
+def add_cors(response):
+    response.headers["Access-Control-Allow-Origin"]  = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
 
 
 def preprocess(image_bytes: bytes) -> np.ndarray:
@@ -128,8 +137,11 @@ def health():
     })
 
 
-@app.route("/predict", methods=["POST"])
+@app.route("/predict", methods=["POST", "OPTIONS"])
 def predict():
+    # Handle preflight
+    if request.method == "OPTIONS":
+        return "", 200
     if "image" not in request.files:
         return jsonify({"error": "Send a multipart/form-data POST with key 'image'."}), 400
 
