@@ -10,7 +10,14 @@ export default defineConfig({
         target: 'http://localhost:5000',  // Your backend port
         changeOrigin: true,
         secure: false,
+      },
+      '/disease-api': {
+        target: 'https://farmwise-disease-api.onrender.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/disease-api/, ''),
       }
     }
   }
 })
+

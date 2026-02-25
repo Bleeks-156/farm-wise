@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import '../styles/disease-scanner.css';
 
-const DISEASE_API = import.meta.env.VITE_DISEASE_API_URL || '';
+const DISEASE_API = import.meta.env.VITE_DISEASE_API_URL || '/disease-api';
 
 const CROP_OPTIONS = [
     { value: '', label: 'Auto-detect (no hint)' },
