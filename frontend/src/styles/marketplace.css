@@ -137,12 +137,18 @@
 
 /* Tabs + Category filters */
 .marketplace-filters {
-  background: transparent;
-  border-bottom: none;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   padding: 16px 0;
   position: sticky;
-  top: 0;
+  top: 70px; /* Account for navbar height */
   z-index: 10;
+}
+
+[data-theme="dark"] .marketplace-filters {
+  background: rgba(30, 41, 59, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .marketplace-tabs {
@@ -809,6 +815,7 @@
 
   .marketplace-filters {
     padding: 12px 0;
+    top: 65px; /* Mobile navbar height */
   }
 
   .marketplace-categories {
@@ -861,6 +868,10 @@
 }
 
 @media (max-width: 480px) {
+  .marketplace-filters {
+    top: 60px; /* Small mobile navbar height */
+  }
+  
   .marketplace-results-count {
     margin-top: 16px;
     margin-bottom: 16px;
