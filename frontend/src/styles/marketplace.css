@@ -26,6 +26,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -155,21 +156,22 @@
 .marketplace-tab {
   padding: 10px 20px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.9);
-  color: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
   font-size: 0.95rem;
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(6px);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .marketplace-tab:hover {
-  background: rgba(255, 255, 255, 1);
-  border-color: var(--mayo-blue);
-  color: var(--mayo-blue);
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
 }
 
 .marketplace-tab.active {
@@ -179,15 +181,15 @@
 }
 
 [data-theme="dark"] .marketplace-tab {
-  background: rgba(30, 41, 59, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: #e2e8f0;
 }
 
 [data-theme="dark"] .marketplace-tab:hover {
-  background: rgba(30, 41, 59, 1);
+  background: rgba(15, 23, 42, 0.55);
   border-color: var(--mayo-blue);
-  color: var(--mayo-blue);
+  color: #ffffff;
 }
 
 [data-theme="dark"] .marketplace-tab.active {
@@ -201,28 +203,31 @@
   gap: 8px;
   padding: 10px 16px;
   border-radius: 10px;
-  border: 1px dashed var(--mayo-blue);
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--mayo-blue);
+  border: 1px dashed rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
   font-size: 0.9rem;
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(6px);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .marketplace-add-btn:hover {
-  background: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.8);
 }
 
 [data-theme="dark"] .marketplace-add-btn {
-  background: rgba(30, 41, 59, 0.9);
-  border-color: var(--mayo-blue);
+  background: rgba(15, 23, 42, 0.35);
+  border-color: rgba(99, 179, 237, 0.5);
+  color: #93c5fd;
 }
 
 [data-theme="dark"] .marketplace-add-btn:hover {
-  background: rgba(30, 41, 59, 1);
+  background: rgba(15, 23, 42, 0.55);
 }
 
 .marketplace-categories {
@@ -239,44 +244,47 @@
   gap: 8px;
   padding: 10px 16px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.9);
-  color: #475569;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
   font-size: 0.9rem;
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.25s ease;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(6px);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .marketplace-cat-btn:hover {
-  border-color: var(--mayo-blue);
-  color: var(--mayo-blue);
-  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.28);
 }
 
 .marketplace-cat-btn.active {
   background: linear-gradient(135deg, var(--mayo-blue), var(--success));
   border-color: transparent;
   color: var(--white);
+  text-shadow: none;
 }
 
 [data-theme="dark"] .marketplace-cat-btn {
-  background: rgba(30, 41, 59, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: #cbd5e1;
 }
 
 [data-theme="dark"] .marketplace-cat-btn:hover {
-  background: rgba(30, 41, 59, 1);
-  border-color: var(--mayo-blue);
-  color: var(--mayo-blue);
+  background: rgba(15, 23, 42, 0.55);
+  border-color: rgba(99, 179, 237, 0.5);
+  color: #ffffff;
 }
 
 [data-theme="dark"] .marketplace-cat-btn.active {
   background: linear-gradient(135deg, var(--mayo-blue), var(--success));
   color: var(--white);
+  text-shadow: none;
 }
 
 /* Results count */
@@ -698,7 +706,7 @@
   gap: 8px;
 }
 
-.marketplace-image-upload > span {
+.marketplace-image-upload>span {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-dark);
@@ -789,6 +797,7 @@
     opacity: 0;
     transform: translateX(-50%) translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
