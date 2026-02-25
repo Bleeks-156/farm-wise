@@ -58,7 +58,6 @@ export default function Register() {
     });
 
     if (result.success) {
-      await new Promise(resolve => setTimeout(resolve, 1500));
       navigate('/', { replace: true });
     } else {
       setError(result.error || 'Registration failed. Please try again.');

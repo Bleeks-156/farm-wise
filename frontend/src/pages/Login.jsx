@@ -28,8 +28,6 @@ export default function Login() {
     const result = await login({ email: email.trim(), password });
     
     if (result.success) {
-      // Show loading screen briefly before navigating
-      await new Promise(resolve => setTimeout(resolve, 1500));
       navigate('/', { replace: true });
     } else {
       setError(result.error || 'Login failed. Please try again.');
