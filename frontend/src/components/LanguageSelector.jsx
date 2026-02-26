@@ -20,31 +20,68 @@ const LANGUAGES = [
     { code: 'zh-CN', name: '中文', flag: '🇨🇳' },
 ];
 
-function triggerGoogleTranslate(langCode) {
-    // Google Translate uses a hidden <select> element — find and change it
-    const frame = document.querySelector('.goog-te-combo');
-    if (frame) {
-        frame.value = langCode;
-        frame.dispatchEvent(new Event('change'));
-    }
+/**
+ * Get the currently active Google Translate language from cookies.
+ */
+function getCurrentLang() {
+    const match = document.cookie.match(/googtrans=\/en\/([a-zA-Z-]+)/);
+    return match ? match[1] : 'en';
 }
 
-function getCurrentLanguage() {
-    // Check Google Translate cookie
-    const match = document.cookie.match(/googtrans=\/en\/([a-z-]+)/i);
-    return match ? match[1] : 'en';
+/**
+ * Set the Google Translate cookie and trigger translation.
+ * Uses two approaches for reliability:
+ *  1. Cookie-based (works on reload)
+ *  2. Direct select manipulation (works without reload)
+ */
+function setLanguage(langCode) {
+    if (langCode === 'en') {
+        // Clear translation — remove cookies and reload
+        document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname};`;
+        window.location.reload();
+        return;
+    }
+
+    // Set the googtrans cookie (for both domain variants)
+    const cookieVal = `/en/${langCode}`;
+    document.cookie = `googtrans=${cookieVal}; path=/;`;
+    document.cookie = `googtrans=${cookieVal}; path=/; domain=.${window.location.hostname};`;
+
+    // Try to use the Google Translate combo box directly (no reload needed)
+    const combo = document.querySelector('.goog-te-combo');
+    if (combo) {
+        combo.value = langCode;
+        combo.dispatchEvent(new Event('change'));
+    } else {
+        // Fallback: reload to pick up the cookie
+        window.location.reload();
+    }
 }
 
 export default function LanguageSelector() {
     const [open, setOpen] = useState(false);
     const [current, setCurrent] = useState('en');
+    const [gtReady, setGtReady] = useState(false);
     const ref = useRef(null);
 
+    // Detect current language on mount
     useEffect(() => {
-        setCurrent(getCurrentLanguage());
+        setCurrent(getCurrentLang());
+
+        // Poll for Google Translate readiness
+        const check = setInterval(() => {
+            if (document.querySelector('.goog-te-combo')) {
+                setGtReady(true);
+                clearInterval(check);
+            }
+        }, 500);
+
+        return () => clearInterval(check);
     }, []);
 
-    // Close on outside click
+    // Close dropdown on outside click
     useEffect(() => {
         const handler = (e) => {
             if (ref.current && !ref.current.contains(e.target)) setOpen(false);
@@ -54,16 +91,9 @@ export default function LanguageSelector() {
     }, []);
 
     const handleSelect = (code) => {
-        if (code === 'en') {
-            // Reset to English — remove the google translate cookie
-            document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
-            document.cookie = 'googtrans=; path=/; domain=' + window.location.hostname + '; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
-            window.location.reload();
-        } else {
-            triggerGoogleTranslate(code);
-            setCurrent(code);
-        }
+        setCurrent(code);
         setOpen(false);
+        setLanguage(code);
     };
 
     const currentLang = LANGUAGES.find(l => l.code === current) || LANGUAGES[0];
