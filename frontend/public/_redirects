@@ -1,5 +1,5 @@
-# Proxy disease API requests through Netlify to avoid CORS
-/disease-api/*  https://farmwise-disease-api.onrender.com/:splat  200
+# Proxy disease API requests through Netlify to HF Spaces
+/disease-api/*  https://bleeks-156-farmwise-disease-api.hf.space/:splat  200
 
 # SPA fallback — must be last
 /*  /index.html  200

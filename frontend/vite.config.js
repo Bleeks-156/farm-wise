@@ -12,7 +12,7 @@ export default defineConfig({
         secure: false,
       },
       '/disease-api': {
-        target: 'https://farmwise-disease-api.onrender.com',
+        target: 'https://bleeks-156-farmwise-disease-api.hf.space',
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path.replace(/^\/disease-api/, ''),
