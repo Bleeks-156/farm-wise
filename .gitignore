@@ -47,3 +47,6 @@ disease-api/venv/
 
 # Disease API — downloaded model assets (auto-downloaded from Google Drive at runtime)
 disease-api/assets/
+
+# HF Spaces clone (separate repo)
+hf-disease-api/
