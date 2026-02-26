@@ -1,13 +1,13 @@
 """
 FarmWise – Plant Disease Detection API
-Uses TFLite for fast inference on low-CPU servers (Render free tier).
-Converts .h5 → .tflite on first boot, then uses lightweight interpreter.
+Uses full TensorFlow with warmup prediction for faster first response.
 """
 
 import ast
 import io
 import json
 import os
+import time
 from pathlib import Path
 
 import gdown
@@ -17,11 +17,10 @@ from flask_cors import CORS
 from PIL import Image, ImageEnhance
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-ASSETS_DIR    = Path("assets")
-MODEL_PATH    = ASSETS_DIR / "plant_disease.h5"
-TFLITE_PATH   = ASSETS_DIR / "plant_disease.tflite"
-CLASSES_PATH  = ASSETS_DIR / "list_of_classes.txt"
-CURE_PATH     = ASSETS_DIR / "cure.json"
+ASSETS_DIR   = Path("assets")
+MODEL_PATH   = ASSETS_DIR / "plant_disease.h5"
+CLASSES_PATH = ASSETS_DIR / "list_of_classes.txt"
+CURE_PATH    = ASSETS_DIR / "cure.json"
 
 # ── Google Drive File IDs ─────────────────────────────────────────────────────
 MODEL_FILE_ID   = "1lxKcXZND6ezM1h5byVwrbXHcy7y6W7fs"
@@ -62,7 +61,28 @@ CROP_GROUPS = {
 }
 
 
-# ── Download assets from Google Drive ─────────────────────────────────────────
+# ── Flask app (create FIRST so port opens fast) ──────────────────────────────
+app = Flask(__name__)
+CORS(app, origins="*", supports_credentials=False)
+
+
+@app.after_request
+def add_cors(response):
+    response.headers["Access-Control-Allow-Origin"]  = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
+
+
+# ── Globals (populated during startup) ────────────────────────────────────────
+model        = None
+class_labels = None
+cure_db      = None
+MODEL_H      = 200
+MODEL_W      = 200
+is_ready     = False
+
+
 def download_assets():
     ASSETS_DIR.mkdir(exist_ok=True)
     files = [
@@ -82,63 +102,45 @@ def download_assets():
             print(f"[assets] Done: {name}")
 
 
-download_assets()
+def load_model():
+    """Load model and run a warmup prediction to compile the TF graph."""
+    global model, class_labels, cure_db, MODEL_H, MODEL_W, is_ready
 
+    download_assets()
 
-# ── Convert .h5 → .tflite (once, then cached) ────────────────────────────────
-def convert_to_tflite():
-    if TFLITE_PATH.exists():
-        print("[model] TFLite model already cached.")
-        return
-
-    print("[model] Converting .h5 → .tflite (one-time, ~30s) …")
+    print("[model] Loading TensorFlow…")
     import tensorflow as tf
+
+    print("[model] Loading .h5 model…")
     model = tf.keras.models.load_model(str(MODEL_PATH), compile=False)
-    converter = tf.lite.TFLiteConverter.from_keras_model(model)
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    tflite_model = converter.convert()
-    TFLITE_PATH.write_bytes(tflite_model)
-    print(f"[model] TFLite saved: {TFLITE_PATH.stat().st_size / 1e6:.1f} MB")
+    _, MODEL_H, MODEL_W, _ = model.input_shape
+    print(f"[model] Loaded. Input: {MODEL_H}x{MODEL_W}")
+
+    with open(CLASSES_PATH, "r", encoding="utf-8") as f:
+        class_labels = ast.literal_eval(f.read())
+
+    with open(CURE_PATH, "r", encoding="utf-8") as f:
+        cure_db = {" ".join(k.strip().lower().split()): v for k, v in json.load(f).items()}
+
+    print(f"[model] {len(class_labels)} classes loaded.")
+
+    # Warmup: first prediction is always slow (TF compiles graph)
+    # Do it now so real requests are fast
+    print("[model] Running warmup prediction…")
+    t0 = time.time()
+    dummy = np.zeros((1, MODEL_H, MODEL_W, 3), dtype=np.float32)
+    model.predict(dummy, verbose=0)
+    print(f"[model] Warmup done in {time.time() - t0:.1f}s")
+
+    is_ready = True
+    print("[model] READY — accepting predictions.")
 
 
-convert_to_tflite()
+# Load in the gunicorn worker process
+load_model()
 
 
-# ── Load TFLite interpreter (lightweight, fast) ──────────────────────────────
-print("[model] Loading TFLite interpreter…")
-import tensorflow as tf
-interpreter = tf.lite.Interpreter(model_path=str(TFLITE_PATH))
-interpreter.allocate_tensors()
-
-input_details  = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
-
-MODEL_H = input_details[0]['shape'][1]
-MODEL_W = input_details[0]['shape'][2]
-print(f"[model] TFLite ready. Input: {MODEL_H}x{MODEL_W}")
-
-with open(CLASSES_PATH, "r", encoding="utf-8") as f:
-    class_labels = ast.literal_eval(f.read())
-
-with open(CURE_PATH, "r", encoding="utf-8") as f:
-    cure_db = {" ".join(k.strip().lower().split()): v for k, v in json.load(f).items()}
-
-print(f"[model] {len(class_labels)} disease classes loaded.")
-
-
-# ── Flask app ─────────────────────────────────────────────────────────────────
-app = Flask(__name__)
-CORS(app, origins="*", supports_credentials=False)
-
-
-@app.after_request
-def add_cors(response):
-    response.headers["Access-Control-Allow-Origin"]  = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    return response
-
-
+# ── Preprocessing ─────────────────────────────────────────────────────────────
 def preprocess(image_bytes):
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     w, h = img.size
@@ -150,19 +152,13 @@ def preprocess(image_bytes):
     return np.expand_dims(np.asarray(img, dtype=np.float32), axis=0)
 
 
-def run_inference(x):
-    """TFLite inference — 5-10x faster than model.predict() on low CPU."""
-    interpreter.set_tensor(input_details[0]['index'], x)
-    interpreter.invoke()
-    return interpreter.get_tensor(output_details[0]['index'])[0].copy()
-
-
+# ── Routes ────────────────────────────────────────────────────────────────────
 @app.route("/", methods=["GET"])
 def health():
     return jsonify({
-        "status":      "ok",
-        "service":     "FarmWise Plant Disease API (TFLite)",
-        "classes":     len(class_labels),
+        "status":      "ok" if is_ready else "loading",
+        "service":     "FarmWise Plant Disease API",
+        "classes":     len(class_labels) if class_labels else 0,
         "input_shape": f"{MODEL_H}x{MODEL_W}",
     })
 
@@ -171,6 +167,9 @@ def health():
 def predict():
     if request.method == "OPTIONS":
         return "", 200
+
+    if not is_ready:
+        return jsonify({"error": "Model is still loading. Please wait ~30 seconds and try again."}), 503
 
     if "image" not in request.files:
         return jsonify({"error": "Send a multipart/form-data POST with key 'image'."}), 400
@@ -183,7 +182,9 @@ def predict():
     except Exception as e:
         return jsonify({"error": f"Image processing failed: {e}"}), 422
 
-    probs        = run_inference(x)
+    t0 = time.time()
+    probs        = model.predict(x, verbose=0)[0].copy()
+    inference_ms = round((time.time() - t0) * 1000)
     hint_applied = False
 
     if crop_hint and crop_hint in CROP_GROUPS:
@@ -219,6 +220,7 @@ def predict():
             "top_predictions": top_preds,
             "cure":            "Not provided – confidence too low.",
             "crop_hint":       crop_hint,
+            "inference_ms":    inference_ms,
         }
     else:
         result = {
@@ -229,6 +231,7 @@ def predict():
             "top_predictions": top_preds,
             "cure":            cure,
             "crop_hint":       crop_hint,
+            "inference_ms":    inference_ms,
         }
 
     return jsonify(result)
