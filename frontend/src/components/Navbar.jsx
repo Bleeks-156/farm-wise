@@ -4,6 +4,7 @@ import { Menu, X, Sun, Moon, User, LogOut, ShoppingCart } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import API_BASE from '../config/api';
+import LanguageSelector from './LanguageSelector';
 import '../styles/navbar.css';
 
 export default function Navbar() {
@@ -88,6 +89,8 @@ export default function Navbar() {
             {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
           </button>
 
+          <LanguageSelector />
+
           {user ? (
             <div className="navbar-profile-wrap">
               <button
@@ -161,6 +164,7 @@ export default function Navbar() {
           >
             {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
           </button>
+          <LanguageSelector />
           {user ? (
             <div className="navbar-profile-wrap navbar-profile-mobile">
               <button

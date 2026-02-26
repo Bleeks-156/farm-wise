@@ -12,6 +12,18 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Google Translate: hidden widget — triggered by custom UI -->
+    <div id="google_translate_element" style="display:none;"></div>
+    <script>
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+          pageLanguage: 'en',
+          autoDisplay: false,
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+        }, 'google_translate_element');
+      }
+    </script>
+    <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
