@@ -1,9 +1,7 @@
 """
 FarmWise – Plant Disease Detection API
-Part of the farm-wise monorepo. Deployed as a separate Render Web Service.
-Root directory on Render: disease-api
-
-Auto-downloads model assets from Google Drive on first startup.
+Uses TFLite for fast inference on low-CPU servers (Render free tier).
+Converts .h5 → .tflite on first boot, then uses lightweight interpreter.
 """
 
 import ast
@@ -19,10 +17,11 @@ from flask_cors import CORS
 from PIL import Image, ImageEnhance
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-ASSETS_DIR   = Path("assets")
-MODEL_PATH   = ASSETS_DIR / "plant_disease.h5"
-CLASSES_PATH = ASSETS_DIR / "list_of_classes.txt"
-CURE_PATH    = ASSETS_DIR / "cure.json"
+ASSETS_DIR    = Path("assets")
+MODEL_PATH    = ASSETS_DIR / "plant_disease.h5"
+TFLITE_PATH   = ASSETS_DIR / "plant_disease.tflite"
+CLASSES_PATH  = ASSETS_DIR / "list_of_classes.txt"
+CURE_PATH     = ASSETS_DIR / "cure.json"
 
 # ── Google Drive File IDs ─────────────────────────────────────────────────────
 MODEL_FILE_ID   = "1lxKcXZND6ezM1h5byVwrbXHcy7y6W7fs"
@@ -63,17 +62,17 @@ CROP_GROUPS = {
 }
 
 
-# ── Download assets from Google Drive if not already cached ───────────────────
+# ── Download assets from Google Drive ─────────────────────────────────────────
 def download_assets():
     ASSETS_DIR.mkdir(exist_ok=True)
     files = [
-        (MODEL_PATH,   MODEL_FILE_ID,   "plant_disease.h5 (129 MB — please wait)"),
+        (MODEL_PATH,   MODEL_FILE_ID,   "plant_disease.h5 (129 MB)"),
         (CLASSES_PATH, CLASSES_FILE_ID, "list_of_classes.txt"),
         (CURE_PATH,    CURE_FILE_ID,    "cure.json"),
     ]
     for local_path, file_id, name in files:
         if local_path.exists():
-            print(f"[assets] {name} — already cached, skipping.")
+            print(f"[assets] {name} — cached, skipping.")
         else:
             print(f"[assets] Downloading {name} …")
             gdown.download(
@@ -83,15 +82,40 @@ def download_assets():
             print(f"[assets] Done: {name}")
 
 
-# Run before importing TensorFlow (saves peak memory on cold start)
 download_assets()
 
-# ── Load model (heavy — only once per dyno lifetime) ─────────────────────────
-print("[model] Loading TensorFlow model…")
+
+# ── Convert .h5 → .tflite (once, then cached) ────────────────────────────────
+def convert_to_tflite():
+    if TFLITE_PATH.exists():
+        print("[model] TFLite model already cached.")
+        return
+
+    print("[model] Converting .h5 → .tflite (one-time, ~30s) …")
+    import tensorflow as tf
+    model = tf.keras.models.load_model(str(MODEL_PATH), compile=False)
+    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    tflite_model = converter.convert()
+    TFLITE_PATH.write_bytes(tflite_model)
+    print(f"[model] TFLite saved: {TFLITE_PATH.stat().st_size / 1e6:.1f} MB")
+
+
+convert_to_tflite()
+
+
+# ── Load TFLite interpreter (lightweight, fast) ──────────────────────────────
+print("[model] Loading TFLite interpreter…")
 import tensorflow as tf
-model = tf.keras.models.load_model(str(MODEL_PATH), compile=False)
-_, MODEL_H, MODEL_W, _ = model.input_shape
-print(f"[model] Ready. Input: {MODEL_H}×{MODEL_W}")
+interpreter = tf.lite.Interpreter(model_path=str(TFLITE_PATH))
+interpreter.allocate_tensors()
+
+input_details  = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+MODEL_H = input_details[0]['shape'][1]
+MODEL_W = input_details[0]['shape'][2]
+print(f"[model] TFLite ready. Input: {MODEL_H}x{MODEL_W}")
 
 with open(CLASSES_PATH, "r", encoding="utf-8") as f:
     class_labels = ast.literal_eval(f.read())
@@ -103,11 +127,10 @@ print(f"[model] {len(class_labels)} disease classes loaded.")
 
 
 # ── Flask app ─────────────────────────────────────────────────────────────────
-app   = Flask(__name__)
+app = Flask(__name__)
 CORS(app, origins="*", supports_credentials=False)
 
-# Belt-and-suspenders: manually add CORS headers on EVERY response
-# This ensures headers are present even on error responses
+
 @app.after_request
 def add_cors(response):
     response.headers["Access-Control-Allow-Origin"]  = "*"
@@ -116,7 +139,7 @@ def add_cors(response):
     return response
 
 
-def preprocess(image_bytes: bytes) -> np.ndarray:
+def preprocess(image_bytes):
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     w, h = img.size
     mw, mh = int(w * 0.10), int(h * 0.10)
@@ -127,21 +150,28 @@ def preprocess(image_bytes: bytes) -> np.ndarray:
     return np.expand_dims(np.asarray(img, dtype=np.float32), axis=0)
 
 
+def run_inference(x):
+    """TFLite inference — 5-10x faster than model.predict() on low CPU."""
+    interpreter.set_tensor(input_details[0]['index'], x)
+    interpreter.invoke()
+    return interpreter.get_tensor(output_details[0]['index'])[0].copy()
+
+
 @app.route("/", methods=["GET"])
 def health():
     return jsonify({
         "status":      "ok",
-        "service":     "FarmWise Plant Disease API",
+        "service":     "FarmWise Plant Disease API (TFLite)",
         "classes":     len(class_labels),
-        "input_shape": f"{MODEL_H}×{MODEL_W}",
+        "input_shape": f"{MODEL_H}x{MODEL_W}",
     })
 
 
 @app.route("/predict", methods=["POST", "OPTIONS"])
 def predict():
-    # Handle preflight
     if request.method == "OPTIONS":
         return "", 200
+
     if "image" not in request.files:
         return jsonify({"error": "Send a multipart/form-data POST with key 'image'."}), 400
 
@@ -153,7 +183,7 @@ def predict():
     except Exception as e:
         return jsonify({"error": f"Image processing failed: {e}"}), 422
 
-    probs        = model.predict(x, verbose=0)[0].copy()
+    probs        = run_inference(x)
     hint_applied = False
 
     if crop_hint and crop_hint in CROP_GROUPS:
