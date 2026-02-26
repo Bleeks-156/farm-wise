@@ -5,7 +5,7 @@ An agricultural intelligence platform that combines deep learning-based plant di
 ## Features
 
 - **Plant Disease Scanner** — Upload a leaf photo and get an instant diagnosis with cure recommendations. Powered by an EfficientNetB3 CNN trained on 200K+ images (99.8% accuracy, 56 disease classes across 17 crops).
-- **AI Advisory Chat** — Context-aware agricultural advisor powered by Google Gemini 2.5 Flash. Accepts crop type, growth stage, location, and season to deliver explainable, multilingual recommendations (English, Tamil, Hindi, Telugu, Kannada, Malayalam).
+- **AI Advisory Chat** — Context-aware agricultural advisor powered by Google Gemini 2.5 Flash. Accepts crop type, growth stage, location, and season to deliver explainable, multilingual recommendations.
 - **Marketplace** — Browse and purchase farming inputs (fertilizers, pesticides, seeds) from verified sellers. Integrated with Stripe for payments and Cloudinary for product images.
 - **Weather Dashboard** — Real-time weather data and 5-day forecast with automated farming recommendations (irrigation timing, pest spray warnings, heat alerts).
 - **User Profiles** — JWT-based authentication with seller registration and order history.
@@ -59,29 +59,12 @@ farm-wise/
 # Install all dependencies (root + backend + frontend)
 npm run install-all
 
-# Create backend/.env with your keys
-# (see Environment Variables below)
-
 # Start both servers concurrently
 npm run dev
 ```
 
 Frontend runs on `http://localhost:5173`, backend on `http://localhost:5000`.
 
-### Environment Variables
-
-Create `backend/.env`:
-
-```env
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-GEMINI_API_KEY=your_gemini_api_key
-STRIPE_SECRET_KEY=your_stripe_secret_key
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_key
-CLOUDINARY_API_SECRET=your_cloudinary_secret
-PORT=5000
-```
 
 ## Disease Detection Model
 
@@ -96,21 +79,4 @@ PORT=5000
 | Inference Input | 200 × 200 RGB |
 | Confidence Threshold | 70% |
 
-The model is hosted on Hugging Face Spaces and accessed via a Vite dev proxy (`/disease-api` → HF Spaces).
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/disease-api/predict` | Upload leaf image, get disease prediction + cure |
-| POST | `/api/advisory/chat` | Send message to Gemini AI with farming context |
-| POST | `/api/auth/register` | Register a new user |
-| POST | `/api/auth/login` | Login and receive JWT |
-| GET | `/api/marketplace/products` | List marketplace products |
-| POST | `/api/cart` | Add item to cart |
-| POST | `/api/payment/create-session` | Create Stripe checkout session |
-| GET | `/api/chat-history` | List saved advisory chat sessions |
-
-## License
-
-MIT
+The model is hosted on Hugging Face Spaces.
