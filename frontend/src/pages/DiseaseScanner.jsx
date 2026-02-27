@@ -60,6 +60,8 @@ export default function DiseaseScanner() {
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
+    const [retryInfo, setRetryInfo] = useState('');
+
     const handleAnalyze = async () => {
         if (!selectedFile) return;
         if (!DISEASE_API) {
@@ -69,29 +71,54 @@ export default function DiseaseScanner() {
         setLoading(true);
         setError(null);
         setResult(null);
+        setRetryInfo('');
 
-        try {
-            const formData = new FormData();
-            formData.append('image', selectedFile);
-            if (cropHint) formData.append('crop', cropHint);
+        const MAX_RETRIES = 4;
+        const RETRY_DELAYS = [8000, 15000, 25000, 35000]; // progressive backoff
 
-            const res = await fetch(`${DISEASE_API}/predict`, {
-                method: 'POST',
-                body: formData,
-            });
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+                if (cropHint) formData.append('crop', cropHint);
 
-            if (!res.ok) throw new Error(`Server error: ${res.status}`);
-            const data = await res.json();
-            setResult(data);
-        } catch (err) {
-            setError(
-                err.message.includes('Failed to fetch') || err.message.includes('NetworkError')
-                    ? 'Could not reach the disease detection API. Check your VITE_DISEASE_API_URL and make sure the Render service is running.'
-                    : err.message
-            );
-        } finally {
-            setLoading(false);
+                const res = await fetch(`${DISEASE_API}/predict`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (res.status === 503) {
+                    if (attempt < MAX_RETRIES) {
+                        const delaySec = Math.round(RETRY_DELAYS[attempt] / 1000);
+                        setRetryInfo(`API is waking up (cold start)… retrying in ${delaySec}s (attempt ${attempt + 1}/${MAX_RETRIES})`);
+                        await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
+                        continue;
+                    }
+                    throw new Error('The disease API is still starting up. Please wait about 1-2 minutes and try again.');
+                }
+
+                if (!res.ok) throw new Error(`Server error: ${res.status}`);
+                const data = await res.json();
+                setResult(data);
+                setRetryInfo('');
+                break;
+            } catch (err) {
+                if (attempt < MAX_RETRIES && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('503'))) {
+                    const delaySec = Math.round(RETRY_DELAYS[attempt] / 1000);
+                    setRetryInfo(`Connection issue… retrying in ${delaySec}s (attempt ${attempt + 1}/${MAX_RETRIES})`);
+                    await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
+                    continue;
+                }
+                setRetryInfo('');
+                setError(
+                    err.message.includes('Failed to fetch') || err.message.includes('NetworkError')
+                        ? 'Could not reach the disease detection API. The Hugging Face Space may be sleeping — wait a minute and try again.'
+                        : err.message
+                );
+                break;
+            }
         }
+        setLoading(false);
     };
 
     const confColor = (c) => c >= 85 ? '#16a34a' : c >= 70 ? '#f59e0b' : '#dc2626';
@@ -206,7 +233,9 @@ export default function DiseaseScanner() {
                             <div className="ds-state">
                                 <div className="ds-loading-ring" />
                                 <p className="ds-state-title" style={{ color: '#86efac' }}>Running AI analysis…</p>
-                                <p className="ds-state-sub">First request may take ~2 min (cold start on Render)</p>
+                                <p className="ds-state-sub">
+                                    {retryInfo || 'First request may take ~2 min if the API is waking up (cold start)'}
+                                </p>
                             </div>
                         )}
 
