@@ -7,16 +7,17 @@
 .lang-selector-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
     border: 1px solid var(--border-subtle);
     background: transparent;
     color: var(--mayo-slate);
     cursor: pointer;
     transition: all 0.2s ease;
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.85rem;
+    padding: 0;
+    flex-shrink: 0;
 }
 
 .lang-selector-btn:hover {
@@ -27,21 +28,6 @@
 
 .lang-globe-icon {
     flex-shrink: 0;
-}
-
-.lang-current-flag {
-    font-size: 1rem;
-    line-height: 1;
-}
-
-.lang-chevron {
-    transition: transform 0.25s ease;
-    flex-shrink: 0;
-    opacity: 0.6;
-}
-
-.lang-chevron-open {
-    transform: rotate(180deg);
 }
 
 /* ── Dropdown ─────────────────────────────────────────────────────────────── */
@@ -166,14 +152,47 @@ body {
     box-shadow: none !important;
 }
 
-/* ── Mobile ───────────────────────────────────────────────────────────────── */
+/* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
     .lang-selector-btn {
-        padding: 5px 8px;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+    }
+
+    .lang-selector-btn svg {
+        width: 18px;
+        height: 18px;
     }
 
     .lang-dropdown {
         right: -10px;
         min-width: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .lang-selector-btn {
+        width: 34px;
+        height: 34px;
+    }
+
+    .lang-selector-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+@media (max-width: 360px) {
+    .lang-selector-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: none;
+    }
+
+    .lang-selector-btn svg {
+        width: 16px;
+        height: 16px;
     }
 }

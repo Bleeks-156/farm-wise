@@ -105,11 +105,9 @@ export default function LanguageSelector() {
                 className="lang-selector-btn"
                 onClick={() => setOpen(v => !v)}
                 aria-label="Select language"
-                title="Translate page"
+                title={`Language: ${currentLang.name}`}
             >
-                <Globe size={18} className="lang-globe-icon" />
-                <span className="lang-current-flag">{currentLang.flag}</span>
-                <ChevronDown size={14} className={`lang-chevron ${open ? 'lang-chevron-open' : ''}`} />
+                <Globe size={20} className="lang-globe-icon" />
             </button>
 
             {open && (
