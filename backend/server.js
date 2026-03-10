@@ -3,10 +3,29 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const helmet = require('helmet');
+const hpp = require('hpp');
+const { generalLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 
-// Middleware
+// ──────────────────────────────────────────────
+// Security Middleware
+// ──────────────────────────────────────────────
+
+// Helmet: sets various HTTP security headers
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for API server (frontend handles its own)
+  crossOriginEmbedderPolicy: false,
+}));
+
+// HPP: protect against HTTP parameter pollution
+app.use(hpp());
+
+// Trust proxy (needed for rate limiter behind reverse proxy / deployment)
+app.set('trust proxy', 1);
+
+// CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
@@ -19,21 +38,32 @@ app.use(cors({
   origin: allowedOrigins,
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
+// Body parsing with size limits to prevent large payload attacks
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// General rate limiter on all API routes
+app.use('/api', generalLimiter);
+
+// ──────────────────────────────────────────────
 // MongoDB Connection
+// ──────────────────────────────────────────────
 mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log('✅ MongoDB connected successfully'))
-.catch((err) => console.error('❌ MongoDB connection error:', err));
+  .then(() => console.log('✅ MongoDB connected successfully'))
+  .catch((err) => console.error('❌ MongoDB connection error:', err));
 
+// ──────────────────────────────────────────────
 // Routes
-const advisoryRoutes = require('./routes/advisory');
-app.use('/api/advisory', advisoryRoutes);
+// ──────────────────────────────────────────────
 
 // Auth routes
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
+
+// Advisory routes
+const advisoryRoutes = require('./routes/advisory');
+app.use('/api/advisory', advisoryRoutes);
 
 // Upload routes
 const uploadRoutes = require('./routes/upload');
@@ -57,8 +87,8 @@ app.use('/api/chat-history', chatHistoryRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'FarmWise backend is running',
     timestamp: new Date().toISOString()
   });
@@ -66,7 +96,7 @@ app.get('/api/health', (req, res) => {
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'FarmWise API Server',
     version: '1.0.0',
     endpoints: {
@@ -76,29 +106,42 @@ app.get('/', (req, res) => {
   });
 });
 
-// Error handling middleware
+// ──────────────────────────────────────────────
+// Error Handling
+// ──────────────────────────────────────────────
+
+// Error handling middleware — never leak stack traces in production
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  res.status(500).json({ 
+
+  // Don't leak error details in production
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Something went wrong!'
+    : err.message;
+
+  res.status(err.status || 500).json({
     error: 'Something went wrong!',
-    message: err.message 
+    message
   });
 });
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ 
+  res.status(404).json({
     error: 'Route not found',
-    path: req.path 
+    path: req.path
   });
 });
 
-// Start server
+// ──────────────────────────────────────────────
+// Start Server
+// ──────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 FarmWise backend server running on port ${PORT}`);
   console.log(`📡 API available at http://localhost:${PORT}`);
   console.log(`🤖 Gemini API integrated and ready`);
+  console.log(`🔒 Security middleware active (Helmet, CORS, Rate Limiting, HPP)`);
 });
 
 module.exports = app;
