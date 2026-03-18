@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UserPlus, Mail, Lock, User, Phone, MapPin } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Phone, MapPin, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import '../styles/register.css';
@@ -17,6 +17,8 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register, user } = useAuth();
   const navigate = useNavigate();
 
@@ -175,7 +177,7 @@ export default function Register() {
               <div className="register-input-wrapper">
                 <Lock size={18} className="register-input-icon" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
@@ -183,6 +185,14 @@ export default function Register() {
                   className="register-input"
                   required
                 />
+                <button
+                  type="button"
+                  className="register-password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </label>
 
@@ -191,7 +201,7 @@ export default function Register() {
               <div className="register-input-wrapper">
                 <Lock size={18} className="register-input-icon" />
                 <input
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
@@ -199,6 +209,14 @@ export default function Register() {
                   className="register-input"
                   required
                 />
+                <button
+                  type="button"
+                  className="register-password-toggle"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </label>
 
