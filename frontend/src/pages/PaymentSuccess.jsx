@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import API_BASE from '../config/api';
 import emailjs from '@emailjs/browser';
 import { CheckCircle, Package, ArrowLeft, Loader, AlertCircle, Mail, MailCheck, MailX } from 'lucide-react';
 import '../styles/payment-success.css';
@@ -77,7 +78,7 @@ export default function PaymentSuccess() {
 
   const verifyPayment = async () => {
     try {
-      const response = await fetch(`/api/payment/verify/${sessionId}`, {
+      const response = await fetch(`${API_BASE}/api/payment/verify/${sessionId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
