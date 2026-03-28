@@ -9,6 +9,12 @@ import {
   ChevronRight,
   Store,
   Leaf,
+  FileText,
+  Shield,
+  CreditCard,
+  Building2,
+  Landmark,
+  CheckCircle,
   Droplets,
   Wrench,
   ShoppingCart,
@@ -59,6 +65,21 @@ export default function Marketplace() {
   const [sellerReqUploading, setSellerReqUploading] = useState(false);
   const productFileRef = useRef(null);
   const sellerReqFileRef = useRef(null);
+
+  // Document upload states
+  const [docUrls, setDocUrls] = useState({
+    aadhaarDocument: '',
+    panDocument: '',
+    businessLicenseDocument: '',
+    bankAccountDocument: '',
+  });
+  const [docUploading, setDocUploading] = useState({});
+  const docFileRefs = {
+    aadhaar: useRef(null),
+    pan: useRef(null),
+    businessLicense: useRef(null),
+    bankAccount: useRef(null),
+  };
 
   const isSeller = sellerStatus?.seller != null;
   const hasRequest = sellerStatus?.request != null;
@@ -227,7 +248,37 @@ export default function Marketplace() {
 
   const resetSellerRequestForm = () => {
     setSellerReqImageUrl('');
+    setDocUrls({ aadhaarDocument: '', panDocument: '', businessLicenseDocument: '', bankAccountDocument: '' });
+    setDocUploading({});
     setSellerRequestOpen(false);
+  };
+
+  const handleDocumentUpload = async (file, docType, docField) => {
+    if (!file) return;
+    setDocUploading(prev => ({ ...prev, [docType]: true }));
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('docType', docType);
+      const response = await fetch(`${API_BASE}/api/upload/document`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      const data = await response.json();
+      if (data.success) {
+        setDocUrls(prev => ({ ...prev, [docField]: data.url }));
+      } else {
+        setPurchaseToast({ text: data.error || 'Failed to upload document', type: 'error' });
+        setTimeout(() => setPurchaseToast(null), 3000);
+      }
+    } catch (error) {
+      console.error('Document upload error:', error);
+      setPurchaseToast({ text: 'Failed to upload document', type: 'error' });
+      setTimeout(() => setPurchaseToast(null), 3000);
+    } finally {
+      setDocUploading(prev => ({ ...prev, [docType]: false }));
+    }
   };
 
   const handleAddProduct = async (e) => {
@@ -271,6 +322,18 @@ export default function Marketplace() {
   const handleSellerRequest = async (e) => {
     e.preventDefault();
     const form = e.target;
+
+    // Validate required document uploads
+    if (!docUrls.aadhaarDocument) {
+      setPurchaseToast({ text: 'Please upload your Aadhaar card document', type: 'error' });
+      setTimeout(() => setPurchaseToast(null), 3000);
+      return;
+    }
+    if (!docUrls.panDocument) {
+      setPurchaseToast({ text: 'Please upload your PAN card document', type: 'error' });
+      setTimeout(() => setPurchaseToast(null), 3000);
+      return;
+    }
     
     try {
       const response = await fetch(`${API_BASE}/api/marketplace/seller-request`, {
@@ -285,7 +348,15 @@ export default function Marketplace() {
           category: form.category.value || 'Seeds',
           phone: form.phone.value.trim(),
           description: form.description.value.trim() || '',
-          image: sellerReqImageUrl || ''
+          image: sellerReqImageUrl || '',
+          aadhaarNumber: form.aadhaarNumber.value.trim(),
+          aadhaarDocument: docUrls.aadhaarDocument,
+          panNumber: form.panNumber.value.trim(),
+          panDocument: docUrls.panDocument,
+          gstNumber: form.gstNumber.value.trim(),
+          businessLicenseNumber: form.businessLicenseNumber?.value?.trim() || '',
+          businessLicenseDocument: docUrls.businessLicenseDocument || '',
+          bankAccountDocument: docUrls.bankAccountDocument || '',
         })
       });
       
@@ -293,11 +364,11 @@ export default function Marketplace() {
       if (data.success) {
         setSellerStatus(prev => ({ ...prev, request: data.request }));
         resetSellerRequestForm();
-        setPurchaseToast({ text: 'Seller request submitted! Awaiting admin approval.', type: 'success' });
+        setPurchaseToast({ text: 'Seller request submitted! Your documents will be verified.', type: 'success' });
         setTimeout(() => setPurchaseToast(null), 4000);
       } else {
         setPurchaseToast({ text: data.error || 'Failed to submit request', type: 'error' });
-        setTimeout(() => setPurchaseToast(null), 3000);
+        setTimeout(() => setPurchaseToast(null), 4000);
       }
     } catch (error) {
       console.error('Seller request error:', error);
@@ -634,76 +705,287 @@ export default function Marketplace() {
       {/* Become a Seller Request modal */}
       {sellerRequestOpen && (
         <div className="marketplace-modal-overlay" onClick={resetSellerRequestForm}>
-          <div className="marketplace-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="marketplace-modal marketplace-modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="marketplace-modal-header">
-              <h3>Become a Seller</h3>
+              <h3>Become a Verified Seller</h3>
               <button type="button" className="marketplace-modal-close" onClick={resetSellerRequestForm}>
                 <X size={22} />
               </button>
             </div>
             <p className="marketplace-modal-desc">
-              Submit your details to register as a seller. An admin will review and approve your request.
+              Submit your business details and government-issued documents for verification. An admin will review and approve your request.
             </p>
             <form onSubmit={handleSellerRequest} className="marketplace-modal-form">
-              <label>
-                <span>Shop / Business Name</span>
-                <input type="text" name="shopName" required placeholder="e.g. Green Valley Agri Store" />
-              </label>
-              <label>
-                <span>Location</span>
-                <input type="text" name="location" required placeholder="e.g. Coimbatore, Tamil Nadu" />
-              </label>
-              <label>
-                <span>Category</span>
-                <select name="category">
-                  {CATEGORIES.filter((c) => c.id !== 'all').map((c) => (
-                    <option key={c.id} value={c.label}>{c.label}</option>
-                  ))}
-                  <option value="All">All Categories</option>
-                </select>
-              </label>
-              <label>
-                <span>Phone</span>
-                <input type="tel" name="phone" required placeholder="+91 98765 43210" />
-              </label>
-              <label>
-                <span>Description</span>
-                <textarea name="description" rows={3} placeholder="Tell us about your business..." />
-              </label>
-              <div className="marketplace-image-upload">
-                <span>Shop Image (optional)</span>
-                <div 
-                  className="marketplace-upload-box"
-                  onClick={() => sellerReqFileRef.current?.click()}
-                >
-                  {sellerReqImageUrl ? (
-                    <img src={sellerReqImageUrl} alt="Preview" className="marketplace-upload-preview" />
-                  ) : sellerReqUploading ? (
-                    <div className="marketplace-upload-loading">
-                      <Loader size={24} className="marketplace-upload-spinner" />
-                      <span>Uploading...</span>
-                    </div>
-                  ) : (
-                    <div className="marketplace-upload-placeholder">
-                      <Upload size={32} />
-                      <span>Click to upload image</span>
-                    </div>
-                  )}
+
+              {/* ── Section: Business Information ── */}
+              <div className="seller-form-section">
+                <div className="seller-form-section-title">
+                  <Store size={18} />
+                  <span>Business Information</span>
                 </div>
-                <input
-                  type="file"
-                  ref={sellerReqFileRef}
-                  onChange={handleSellerReqImageChange}
-                  accept="image/*"
-                  className="marketplace-file-input"
-                />
+                <label>
+                  <span>Shop / Business Name *</span>
+                  <input type="text" name="shopName" required placeholder="e.g. Green Valley Agri Store" />
+                </label>
+                <div className="seller-form-row">
+                  <label>
+                    <span>Location *</span>
+                    <input type="text" name="location" required placeholder="e.g. Coimbatore, Tamil Nadu" />
+                  </label>
+                  <label>
+                    <span>Category *</span>
+                    <select name="category">
+                      {CATEGORIES.filter((c) => c.id !== 'all').map((c) => (
+                        <option key={c.id} value={c.label}>{c.label}</option>
+                      ))}
+                      <option value="All">All Categories</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="seller-form-row">
+                  <label>
+                    <span>Phone *</span>
+                    <input type="tel" name="phone" required placeholder="+91 98765 43210" />
+                  </label>
+                </div>
+                <label>
+                  <span>Description</span>
+                  <textarea name="description" rows={2} placeholder="Tell us about your business..." />
+                </label>
+                <div className="marketplace-image-upload">
+                  <span>Shop Image (optional)</span>
+                  <div 
+                    className="marketplace-upload-box"
+                    onClick={() => sellerReqFileRef.current?.click()}
+                  >
+                    {sellerReqImageUrl ? (
+                      <img src={sellerReqImageUrl} alt="Preview" className="marketplace-upload-preview" />
+                    ) : sellerReqUploading ? (
+                      <div className="marketplace-upload-loading">
+                        <Loader size={24} className="marketplace-upload-spinner" />
+                        <span>Uploading...</span>
+                      </div>
+                    ) : (
+                      <div className="marketplace-upload-placeholder">
+                        <Upload size={32} />
+                        <span>Click to upload image</span>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    ref={sellerReqFileRef}
+                    onChange={handleSellerReqImageChange}
+                    accept="image/*"
+                    className="marketplace-file-input"
+                  />
+                </div>
               </div>
+
+              {/* ── Section: Government Verification Documents ── */}
+              <div className="seller-form-section">
+                <div className="seller-form-section-title">
+                  <Shield size={18} />
+                  <span>Government Verification Documents</span>
+                </div>
+                <p className="seller-form-section-note">
+                  All documents marked with * are mandatory for seller verification.
+                </p>
+
+                {/* Aadhaar Card */}
+                <div className="seller-doc-group">
+                  <div className="seller-doc-group-header">
+                    <FileText size={16} />
+                    <span>Aadhaar Card *</span>
+                  </div>
+                  <label>
+                    <span>Aadhaar Number</span>
+                    <input type="text" name="aadhaarNumber" required placeholder="XXXX XXXX XXXX" maxLength={14} />
+                  </label>
+                  <div className="marketplace-image-upload">
+                    <span>Upload Aadhaar Card *</span>
+                    <div 
+                      className="marketplace-upload-box marketplace-upload-box-sm"
+                      onClick={() => docFileRefs.aadhaar.current?.click()}
+                    >
+                      {docUrls.aadhaarDocument ? (
+                        <div className="marketplace-upload-success">
+                          <CheckCircle size={20} />
+                          <span>Aadhaar uploaded</span>
+                        </div>
+                      ) : docUploading.aadhaar ? (
+                        <div className="marketplace-upload-loading">
+                          <Loader size={20} className="marketplace-upload-spinner" />
+                          <span>Uploading...</span>
+                        </div>
+                      ) : (
+                        <div className="marketplace-upload-placeholder">
+                          <Upload size={24} />
+                          <span>Click to upload</span>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      ref={docFileRefs.aadhaar}
+                      onChange={(e) => handleDocumentUpload(e.target.files?.[0], 'aadhaar', 'aadhaarDocument')}
+                      accept="image/*,.pdf"
+                      className="marketplace-file-input"
+                    />
+                  </div>
+                </div>
+
+                {/* PAN Card */}
+                <div className="seller-doc-group">
+                  <div className="seller-doc-group-header">
+                    <CreditCard size={16} />
+                    <span>PAN Card *</span>
+                  </div>
+                  <label>
+                    <span>PAN Number</span>
+                    <input type="text" name="panNumber" required placeholder="ABCDE1234F" maxLength={10} style={{ textTransform: 'uppercase' }} />
+                  </label>
+                  <div className="marketplace-image-upload">
+                    <span>Upload PAN Card *</span>
+                    <div 
+                      className="marketplace-upload-box marketplace-upload-box-sm"
+                      onClick={() => docFileRefs.pan.current?.click()}
+                    >
+                      {docUrls.panDocument ? (
+                        <div className="marketplace-upload-success">
+                          <CheckCircle size={20} />
+                          <span>PAN uploaded</span>
+                        </div>
+                      ) : docUploading.pan ? (
+                        <div className="marketplace-upload-loading">
+                          <Loader size={20} className="marketplace-upload-spinner" />
+                          <span>Uploading...</span>
+                        </div>
+                      ) : (
+                        <div className="marketplace-upload-placeholder">
+                          <Upload size={24} />
+                          <span>Click to upload</span>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      ref={docFileRefs.pan}
+                      onChange={(e) => handleDocumentUpload(e.target.files?.[0], 'pan', 'panDocument')}
+                      accept="image/*,.pdf"
+                      className="marketplace-file-input"
+                    />
+                  </div>
+                </div>
+
+                {/* GST Registration */}
+                <div className="seller-doc-group">
+                  <div className="seller-doc-group-header">
+                    <Building2 size={16} />
+                    <span>GST Registration *</span>
+                  </div>
+                  <label>
+                    <span>GSTIN Number</span>
+                    <input type="text" name="gstNumber" required placeholder="22AAAAA0000A1Z5" maxLength={15} style={{ textTransform: 'uppercase' }} />
+                  </label>
+                </div>
+
+                {/* Business License (optional) */}
+                <div className="seller-doc-group">
+                  <div className="seller-doc-group-header">
+                    <Store size={16} />
+                    <span>Business / Trade License</span>
+                    <span className="seller-doc-optional">Optional</span>
+                  </div>
+                  <label>
+                    <span>License Number</span>
+                    <input type="text" name="businessLicenseNumber" placeholder="License number (if applicable)" />
+                  </label>
+                  <div className="marketplace-image-upload">
+                    <span>Upload License Document</span>
+                    <div 
+                      className="marketplace-upload-box marketplace-upload-box-sm"
+                      onClick={() => docFileRefs.businessLicense.current?.click()}
+                    >
+                      {docUrls.businessLicenseDocument ? (
+                        <div className="marketplace-upload-success">
+                          <CheckCircle size={20} />
+                          <span>License uploaded</span>
+                        </div>
+                      ) : docUploading.businessLicense ? (
+                        <div className="marketplace-upload-loading">
+                          <Loader size={20} className="marketplace-upload-spinner" />
+                          <span>Uploading...</span>
+                        </div>
+                      ) : (
+                        <div className="marketplace-upload-placeholder">
+                          <Upload size={24} />
+                          <span>Click to upload</span>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      ref={docFileRefs.businessLicense}
+                      onChange={(e) => handleDocumentUpload(e.target.files?.[0], 'businessLicense', 'businessLicenseDocument')}
+                      accept="image/*,.pdf"
+                      className="marketplace-file-input"
+                    />
+                  </div>
+                </div>
+
+                {/* Bank Account (optional) */}
+                <div className="seller-doc-group">
+                  <div className="seller-doc-group-header">
+                    <Landmark size={16} />
+                    <span>Bank Account Proof</span>
+                    <span className="seller-doc-optional">Optional</span>
+                  </div>
+                  <div className="marketplace-image-upload">
+                    <span>Upload Cancelled Cheque / Passbook</span>
+                    <div 
+                      className="marketplace-upload-box marketplace-upload-box-sm"
+                      onClick={() => docFileRefs.bankAccount.current?.click()}
+                    >
+                      {docUrls.bankAccountDocument ? (
+                        <div className="marketplace-upload-success">
+                          <CheckCircle size={20} />
+                          <span>Bank doc uploaded</span>
+                        </div>
+                      ) : docUploading.bankAccount ? (
+                        <div className="marketplace-upload-loading">
+                          <Loader size={20} className="marketplace-upload-spinner" />
+                          <span>Uploading...</span>
+                        </div>
+                      ) : (
+                        <div className="marketplace-upload-placeholder">
+                          <Upload size={24} />
+                          <span>Click to upload</span>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      ref={docFileRefs.bankAccount}
+                      onChange={(e) => handleDocumentUpload(e.target.files?.[0], 'bankAccount', 'bankAccountDocument')}
+                      accept="image/*,.pdf"
+                      className="marketplace-file-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="marketplace-modal-actions">
                 <button type="button" className="marketplace-modal-cancel" onClick={resetSellerRequestForm}>
                   Cancel
                 </button>
-                <button type="submit" className="marketplace-modal-submit" disabled={sellerReqUploading}>
-                  Submit Request
+                <button 
+                  type="submit" 
+                  className="marketplace-modal-submit" 
+                  disabled={sellerReqUploading || Object.values(docUploading).some(Boolean)}
+                >
+                  <Shield size={18} />
+                  Submit for Verification
                 </button>
               </div>
             </form>

@@ -150,5 +150,33 @@ router.post('/seller', authenticate, upload.single('image'), async (req, res) =>
     res.status(500).json({ success: false, error: 'Failed to upload image' });
   }
 });
+// POST /api/upload/document - Upload seller verification document (Aadhaar, PAN, License, Bank)
+router.post('/document', authenticate, upload.single('document'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No document file provided' });
+    }
+
+    const validTypes = ['aadhaar', 'pan', 'businessLicense', 'bankAccount'];
+    const docType = req.body.docType;
+
+    if (!docType || !validTypes.includes(docType)) {
+      return res.status(400).json({ success: false, error: 'Invalid document type. Must be one of: ' + validTypes.join(', ') });
+    }
+
+    const result = await uploadToCloudinary(req.file.buffer, `seller-documents/${docType}`);
+
+    res.json({
+      success: true,
+      message: `${docType} document uploaded successfully`,
+      url: result.secure_url,
+      docType
+    });
+
+  } catch (error) {
+    console.error('Document upload error:', error);
+    res.status(500).json({ success: false, error: 'Failed to upload document' });
+  }
+});
 
 module.exports = router;

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { User, Shield, Mail, ArrowLeft, Phone, MapPin, Camera, Loader, Edit3, X, Save, Package, Store, Box, Check, Clock, CheckCircle, XCircle, UserCheck, ShoppingBag, CreditCard } from 'lucide-react';
+import { User, Shield, Mail, ArrowLeft, Phone, MapPin, Camera, Loader, Edit3, X, Save, Package, Store, Box, Check, Clock, CheckCircle, XCircle, UserCheck, ShoppingBag, CreditCard, FileText, Building2, Landmark, ChevronDown, ChevronUp, ExternalLink, Upload, Image } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import '../styles/profile.css';
@@ -11,11 +11,11 @@ export default function Profile() {
   const { theme } = useTheme();
   const isAdmin = user?.role === 'admin';
   const fileInputRef = useRef(null);
-  
+
   const [uploading, setUploading] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(user?.profilePhoto || '');
   const [uploadError, setUploadError] = useState('');
-  
+
   // Editable fields state
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -42,11 +42,21 @@ export default function Profile() {
   // Seller status (for non-admin users)
   const [sellerStatus, setSellerStatus] = useState(null);
 
+  // Seller business editing
+  const [isEditingBusiness, setIsEditingBusiness] = useState(false);
+  const [businessSaving, setBusinessSaving] = useState(false);
+  const [businessSaveMsg, setBusinessSaveMsg] = useState(null);
+  const [businessForm, setBusinessForm] = useState({});
+  const [shopImageUrl, setShopImageUrl] = useState('');
+  const [shopImageUploading, setShopImageUploading] = useState(false);
+  const shopImageRef = useRef(null);
+
   // Admin: seller requests
   const [sellerRequests, setSellerRequests] = useState([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestFilter, setRequestFilter] = useState('pending');
   const [actionLoading, setActionLoading] = useState(null);
+  const [expandedRequest, setExpandedRequest] = useState(null);
 
   useEffect(() => {
     document.body.classList.add('has-profile-bg');
@@ -56,20 +66,42 @@ export default function Profile() {
   }, []);
 
   // Fetch seller status for current user
-  useEffect(() => {
+  const fetchSellerStatus = async () => {
     if (!token || isAdmin) return;
-    const fetchSellerStatus = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/marketplace/seller-request/my`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.success) setSellerStatus({ request: data.request, seller: data.seller });
-      } catch (err) {
-        console.error('Fetch seller status error:', err);
+    try {
+      const res = await fetch(`${API_BASE}/api/marketplace/seller-request/my`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSellerStatus({ request: data.request, seller: data.seller });
+        if (data.seller) {
+          setBusinessForm({
+            name: data.seller.name || '',
+            location: data.seller.location || '',
+            category: data.seller.category || 'All',
+            phone: data.seller.phone || '',
+            description: data.seller.description || '',
+          });
+          setShopImageUrl(data.seller.image || '');
+        }
       }
-    };
+    } catch (err) {
+      console.error('Fetch seller status error:', err);
+    }
+  };
+
+  useEffect(() => {
     fetchSellerStatus();
+  }, [token, isAdmin]);
+
+  // Re-fetch when tab becomes visible (catches admin approval in real-time)
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchSellerStatus();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [token, isAdmin]);
 
   // Admin: fetch seller requests
@@ -316,10 +348,10 @@ export default function Profile() {
     <div className="page-fade profile-page">
       {/* Background Image */}
       <div className="profile-bg">
-        <img 
-          src={theme === 'light' ? '/Profile-L.jpg?v=1' : '/Profile-N.jpg?v=1'} 
-          alt="" 
-          className="profile-bg-img" 
+        <img
+          src={theme === 'light' ? '/Profile-L.jpg?v=1' : '/Profile-N.jpg?v=1'}
+          alt=""
+          className="profile-bg-img"
         />
         <div className="profile-bg-overlay"></div>
       </div>
@@ -352,9 +384,9 @@ export default function Profile() {
               />
             </div>
             {uploadError && <p className="profile-upload-error">{uploadError}</p>}
-            
+
             <h1 className="profile-title">{user?.name || 'User Profile'}</h1>
-            
+
             <div className="profile-role-badge">
               {isAdmin ? (
                 <>
@@ -421,7 +453,7 @@ export default function Profile() {
 
             {saveError && <p className="profile-save-error">{saveError}</p>}
             {saveSuccess && <p className="profile-save-success">Profile updated successfully!</p>}
-            
+
             <div className="profile-info-grid">
               <div className="profile-info-item">
                 <div className="profile-info-label">
@@ -491,6 +523,170 @@ export default function Profile() {
             </div>
           </div>
 
+          {/* Seller: Business Details Section */}
+          {!isAdmin && sellerStatus?.seller && (
+            <div className="profile-info-section">
+              <div className="profile-section-header">
+                <h2 className="profile-section-title">
+                  <Store size={18} />
+                  Business Details
+                </h2>
+                {!isEditingBusiness ? (
+                  <button className="profile-edit-btn" onClick={() => setIsEditingBusiness(true)}>
+                    <Edit3 size={16} />
+                    Edit
+                  </button>
+                ) : (
+                  <div className="profile-edit-actions">
+                    <button className="profile-cancel-btn" onClick={() => {
+                      setIsEditingBusiness(false);
+                      setBusinessSaveMsg(null);
+                      setBusinessForm({
+                        name: sellerStatus.seller.name || '',
+                        location: sellerStatus.seller.location || '',
+                        category: sellerStatus.seller.category || 'All',
+                        phone: sellerStatus.seller.phone || '',
+                        description: sellerStatus.seller.description || '',
+                      });
+                      setShopImageUrl(sellerStatus.seller.image || '');
+                    }} disabled={businessSaving}>
+                      <X size={16} />
+                      Cancel
+                    </button>
+                    <button className="profile-save-btn" onClick={async () => {
+                      setBusinessSaving(true);
+                      setBusinessSaveMsg(null);
+                      try {
+                        const res = await fetch(`${API_BASE}/api/marketplace/sellers/${sellerStatus.seller._id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                          body: JSON.stringify({ ...businessForm, image: shopImageUrl })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          setSellerStatus(prev => ({ ...prev, seller: data.seller }));
+                          setIsEditingBusiness(false);
+                          setBusinessSaveMsg({ type: 'success', text: 'Business details updated!' });
+                          setTimeout(() => setBusinessSaveMsg(null), 3000);
+                        } else {
+                          setBusinessSaveMsg({ type: 'error', text: data.error || 'Failed to update' });
+                        }
+                      } catch (err) {
+                        setBusinessSaveMsg({ type: 'error', text: 'Failed to update. Try again.' });
+                      } finally {
+                        setBusinessSaving(false);
+                      }
+                    }} disabled={businessSaving}>
+                      {businessSaving ? <Loader size={16} className="profile-save-spinner" /> : <Save size={16} />}
+                      {businessSaving ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {businessSaveMsg && (
+                <p className={businessSaveMsg.type === 'success' ? 'profile-save-success' : 'profile-save-error'}>
+                  {businessSaveMsg.text}
+                </p>
+              )}
+
+              <div className="profile-info-grid">
+                <div className="profile-info-item">
+                  <div className="profile-info-label"><Store size={18} /><span>Shop Name</span></div>
+                  {isEditingBusiness ? (
+                    <input type="text" value={businessForm.name} onChange={(e) => setBusinessForm(p => ({ ...p, name: e.target.value }))} className="profile-input" placeholder="Shop name" />
+                  ) : (
+                    <p className="profile-info-value">{sellerStatus.seller.name}</p>
+                  )}
+                </div>
+                <div className="profile-info-item">
+                  <div className="profile-info-label"><MapPin size={18} /><span>Business Location</span></div>
+                  {isEditingBusiness ? (
+                    <input type="text" value={businessForm.location} onChange={(e) => setBusinessForm(p => ({ ...p, location: e.target.value }))} className="profile-input" placeholder="Location" />
+                  ) : (
+                    <p className="profile-info-value">{sellerStatus.seller.location}</p>
+                  )}
+                </div>
+                <div className="profile-info-item">
+                  <div className="profile-info-label"><Package size={18} /><span>Category</span></div>
+                  {isEditingBusiness ? (
+                    <select value={businessForm.category} onChange={(e) => setBusinessForm(p => ({ ...p, category: e.target.value }))} className="profile-input" style={{ marginLeft: '26px', maxWidth: 'calc(100% - 26px)' }}>
+                      <option value="Seeds">Seeds</option>
+                      <option value="Fertilizers">Fertilizers</option>
+                      <option value="Pesticides">Pesticides</option>
+                      <option value="Tools">Tools</option>
+                      <option value="Equipment">Equipment</option>
+                      <option value="Organic">Organic</option>
+                      <option value="All">All Categories</option>
+                    </select>
+                  ) : (
+                    <p className="profile-info-value">{sellerStatus.seller.category}</p>
+                  )}
+                </div>
+                <div className="profile-info-item">
+                  <div className="profile-info-label"><Phone size={18} /><span>Business Phone</span></div>
+                  {isEditingBusiness ? (
+                    <input type="tel" value={businessForm.phone} onChange={(e) => setBusinessForm(p => ({ ...p, phone: e.target.value }))} className="profile-input" placeholder="Phone" />
+                  ) : (
+                    <p className="profile-info-value">{sellerStatus.seller.phone}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="profile-info-item" style={{ marginTop: '16px' }}>
+                <div className="profile-info-label"><FileText size={18} /><span>Description</span></div>
+                {isEditingBusiness ? (
+                  <textarea value={businessForm.description} onChange={(e) => setBusinessForm(p => ({ ...p, description: e.target.value }))} className="profile-input profile-textarea" placeholder="Describe your business" rows={3} />
+                ) : (
+                  <p className="profile-info-value">{sellerStatus.seller.description || 'No description'}</p>
+                )}
+              </div>
+
+              {/* Shop Image */}
+              <div className="profile-info-item" style={{ marginTop: '16px' }}>
+                <div className="profile-info-label"><Image size={18} /><span>Shop Image</span></div>
+                <div className="profile-shop-image-area">
+                  {shopImageUrl ? (
+                    <img src={shopImageUrl} alt="Shop" className="profile-shop-image" />
+                  ) : (
+                    <div className="profile-shop-image-placeholder"><Store size={32} /><span>No shop image</span></div>
+                  )}
+                  {isEditingBusiness && (
+                    <>
+                      <button className="profile-shop-image-upload-btn" onClick={() => shopImageRef.current?.click()} disabled={shopImageUploading}>
+                        {shopImageUploading ? (<><Loader size={14} className="profile-upload-spinner" /> Uploading...</>) : (<><Upload size={14} /> Change Image</>)}
+                      </button>
+                      <input type="file" ref={shopImageRef} onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setShopImageUploading(true);
+                        try {
+                          const fd = new FormData();
+                          fd.append('image', file);
+                          const res = await fetch(`${API_BASE}/api/upload/seller`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+                          const data = await res.json();
+                          if (data.success) setShopImageUrl(data.url);
+                        } catch (err) {
+                          console.error('Shop image upload error:', err);
+                        } finally {
+                          setShopImageUploading(false);
+                        }
+                      }} accept="image/*" className="profile-file-input" />
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* View Shop Link */}
+              <div style={{ marginTop: '16px' }}>
+                <Link to={`/marketplace/seller/${sellerStatus.seller._id}`} className="profile-view-shop-link">
+                  <Store size={16} /> View My Shop Page <ChevronDown size={14} style={{ transform: 'rotate(-90deg)' }} />
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Admin: Seller Requests Panel */}
           {isAdmin && (
             <div className="profile-info-section">
@@ -521,53 +717,167 @@ export default function Profile() {
               ) : (
                 <div className="profile-products-list">
                   {sellerRequests.map(req => (
-                    <div key={req._id} className="profile-request-item">
-                      <div className="profile-request-avatar">
-                        {req.user?.profilePhoto ? (
-                          <img src={req.user.profilePhoto} alt="" className="profile-request-avatar-img" />
-                        ) : (
-                          <div className="profile-request-avatar-placeholder"><User size={18} /></div>
-                        )}
-                      </div>
-                      <div className="profile-request-info">
-                        <span className="profile-request-name">{req.user?.name || 'Unknown'}</span>
-                        <span className="profile-request-email">{req.user?.email}</span>
-                        <span className="profile-request-shop">
-                          <Store size={12} /> {req.shopName} — {req.location}
-                        </span>
-                        <span className="profile-request-detail">
-                          {req.category} · {req.phone}
-                        </span>
-                        {req.description && (
-                          <span className="profile-request-desc">{req.description}</span>
-                        )}
-                      </div>
-                      {requestFilter === 'pending' && (
-                        <div className="profile-request-actions">
+                    <div key={req._id} className="profile-request-item profile-request-item-expanded">
+                      <div className="profile-request-main-row">
+                        <div className="profile-request-avatar">
+                          {req.user?.profilePhoto ? (
+                            <img src={req.user.profilePhoto} alt="" className="profile-request-avatar-img" />
+                          ) : (
+                            <div className="profile-request-avatar-placeholder"><User size={18} /></div>
+                          )}
+                        </div>
+                        <div className="profile-request-info">
+                          <span className="profile-request-name">{req.user?.name || 'Unknown'}</span>
+                          <span className="profile-request-email">{req.user?.email}</span>
+                          <span className="profile-request-shop">
+                            <Store size={12} /> {req.shopName} — {req.location}
+                          </span>
+                          <span className="profile-request-detail">
+                            {req.category} · {req.phone}
+                          </span>
+                          {req.description && (
+                            <span className="profile-request-desc">{req.description}</span>
+                          )}
+                        </div>
+                        <div className="profile-request-right-col">
+                          {requestFilter === 'pending' && (
+                            <div className="profile-request-actions">
+                              <button
+                                className="profile-req-approve-btn"
+                                onClick={() => handleApproveRequest(req._id)}
+                                disabled={actionLoading === req._id}
+                              >
+                                {actionLoading === req._id ? <Loader size={14} className="profile-upload-spinner" /> : <CheckCircle size={14} />}
+                                Approve
+                              </button>
+                              <button
+                                className="profile-req-reject-btn"
+                                onClick={() => handleRejectRequest(req._id)}
+                                disabled={actionLoading === req._id}
+                              >
+                                <XCircle size={14} />
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                          {requestFilter !== 'pending' && (
+                            <div className="profile-request-status-col">
+                              <span className={`profile-req-status-badge profile-req-${req.status}`}>
+                                {req.status === 'approved' ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                                {req.status}
+                              </span>
+                            </div>
+                          )}
                           <button
-                            className="profile-req-approve-btn"
-                            onClick={() => handleApproveRequest(req._id)}
-                            disabled={actionLoading === req._id}
+                            className="profile-request-expand-btn"
+                            onClick={() => setExpandedRequest(expandedRequest === req._id ? null : req._id)}
+                            title="View documents"
                           >
-                            {actionLoading === req._id ? <Loader size={14} className="profile-upload-spinner" /> : <CheckCircle size={14} />}
-                            Approve
-                          </button>
-                          <button
-                            className="profile-req-reject-btn"
-                            onClick={() => handleRejectRequest(req._id)}
-                            disabled={actionLoading === req._id}
-                          >
-                            <XCircle size={14} />
-                            Reject
+                            {expandedRequest === req._id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                            <span>{expandedRequest === req._id ? 'Hide' : 'View'} Documents</span>
                           </button>
                         </div>
-                      )}
-                      {requestFilter !== 'pending' && (
-                        <div className="profile-request-status-col">
-                          <span className={`profile-req-status-badge profile-req-${req.status}`}>
-                            {req.status === 'approved' ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                            {req.status}
-                          </span>
+                      </div>
+
+                      {/* Expandable Document Details */}
+                      {expandedRequest === req._id && (
+                        <div className="profile-request-docs">
+                          <div className="profile-request-docs-title">
+                            <Shield size={16} />
+                            Government Verification Documents
+                          </div>
+                          <div className="profile-request-docs-grid">
+                            {/* Aadhaar */}
+                            <div className="profile-doc-card">
+                              <div className="profile-doc-card-header">
+                                <FileText size={16} />
+                                <span>Aadhaar Card</span>
+                                {req.aadhaarNumber ? <span className="profile-doc-status-ok">✓ Provided</span> : <span className="profile-doc-status-missing">✗ Missing</span>}
+                              </div>
+                              {req.aadhaarNumber && (
+                                <p className="profile-doc-number">XXXX XXXX {req.aadhaarNumber?.slice(-4)}</p>
+                              )}
+                              {req.aadhaarDocument && (
+                                <a href={req.aadhaarDocument} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
+                                  <ExternalLink size={14} /> View Document
+                                </a>
+                              )}
+                            </div>
+
+                            {/* PAN */}
+                            <div className="profile-doc-card">
+                              <div className="profile-doc-card-header">
+                                <CreditCard size={16} />
+                                <span>PAN Card</span>
+                                {req.panNumber ? <span className="profile-doc-status-ok">✓ Provided</span> : <span className="profile-doc-status-missing">✗ Missing</span>}
+                              </div>
+                              {req.panNumber && (
+                                <p className="profile-doc-number">{req.panNumber}</p>
+                              )}
+                              {req.panDocument && (
+                                <a href={req.panDocument} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
+                                  <ExternalLink size={14} /> View Document
+                                </a>
+                              )}
+                            </div>
+
+                            {/* GST */}
+                            <div className="profile-doc-card">
+                              <div className="profile-doc-card-header">
+                                <Building2 size={16} />
+                                <span>GSTIN</span>
+                                {req.gstNumber ? <span className="profile-doc-status-ok">✓ Provided</span> : <span className="profile-doc-status-missing">✗ Missing</span>}
+                              </div>
+                              {req.gstNumber && (
+                                <p className="profile-doc-number">{req.gstNumber}</p>
+                              )}
+                            </div>
+
+                            {/* Business License */}
+                            <div className="profile-doc-card">
+                              <div className="profile-doc-card-header">
+                                <Store size={16} />
+                                <span>Business License</span>
+                                {req.businessLicenseNumber || req.businessLicenseDocument ? <span className="profile-doc-status-ok">✓ Provided</span> : <span className="profile-doc-status-optional">Optional</span>}
+                              </div>
+                              {req.businessLicenseNumber && (
+                                <p className="profile-doc-number">{req.businessLicenseNumber}</p>
+                              )}
+                              {req.businessLicenseDocument && (
+                                <a href={req.businessLicenseDocument} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
+                                  <ExternalLink size={14} /> View Document
+                                </a>
+                              )}
+                            </div>
+
+                            {/* Bank Account */}
+                            <div className="profile-doc-card">
+                              <div className="profile-doc-card-header">
+                                <Landmark size={16} />
+                                <span>Bank Account</span>
+                                {req.bankAccountDocument ? <span className="profile-doc-status-ok">✓ Provided</span> : <span className="profile-doc-status-optional">Optional</span>}
+                              </div>
+                              {req.bankAccountDocument && (
+                                <a href={req.bankAccountDocument} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
+                                  <ExternalLink size={14} /> View Document
+                                </a>
+                              )}
+                            </div>
+
+                            {/* Shop Image */}
+                            {req.image && (
+                              <div className="profile-doc-card">
+                                <div className="profile-doc-card-header">
+                                  <Store size={16} />
+                                  <span>Shop Image</span>
+                                  <span className="profile-doc-status-ok">✓ Provided</span>
+                                </div>
+                                <a href={req.image} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
+                                  <ExternalLink size={14} /> View Image
+                                </a>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>

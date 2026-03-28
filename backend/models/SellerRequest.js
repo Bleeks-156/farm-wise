@@ -36,6 +36,63 @@ const sellerRequestSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+
+  // ── Government Verification Documents ──
+
+  // Aadhaar Card (12-digit UID)
+  aadhaarNumber: {
+    type: String,
+    required: [true, 'Aadhaar number is required'],
+    trim: true,
+    match: [/^\d{4}\s?\d{4}\s?\d{4}$/, 'Please enter a valid 12-digit Aadhaar number']
+  },
+  aadhaarDocument: {
+    type: String,
+    required: [true, 'Aadhaar card document is required'],
+    default: ''
+  },
+
+  // PAN Card (10-character alphanumeric)
+  panNumber: {
+    type: String,
+    required: [true, 'PAN number is required'],
+    trim: true,
+    uppercase: true,
+    match: [/^[A-Z]{5}\d{4}[A-Z]$/, 'Please enter a valid PAN number (e.g. ABCDE1234F)']
+  },
+  panDocument: {
+    type: String,
+    required: [true, 'PAN card document is required'],
+    default: ''
+  },
+
+  // GST Registration Number (15-character)
+  gstNumber: {
+    type: String,
+    required: [true, 'GST number is required'],
+    trim: true,
+    uppercase: true,
+    match: [/^\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z][A-Z\d]$/, 'Please enter a valid 15-digit GSTIN']
+  },
+
+  // Business / Trade License
+  businessLicenseNumber: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  businessLicenseDocument: {
+    type: String,
+    default: ''
+  },
+
+  // Bank Account Verification (cancelled cheque / passbook)
+  bankAccountDocument: {
+    type: String,
+    default: ''
+  },
+
+  // Verification status
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],

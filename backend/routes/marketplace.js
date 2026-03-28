@@ -98,6 +98,15 @@ router.post('/seller-request', verifyUser, async (req, res) => {
       existingRequest.phone = req.body.phone;
       existingRequest.description = req.body.description || '';
       existingRequest.image = req.body.image || '';
+      // Government documents
+      existingRequest.aadhaarNumber = req.body.aadhaarNumber;
+      existingRequest.aadhaarDocument = req.body.aadhaarDocument;
+      existingRequest.panNumber = req.body.panNumber;
+      existingRequest.panDocument = req.body.panDocument;
+      existingRequest.gstNumber = req.body.gstNumber;
+      existingRequest.businessLicenseNumber = req.body.businessLicenseNumber || '';
+      existingRequest.businessLicenseDocument = req.body.businessLicenseDocument || '';
+      existingRequest.bankAccountDocument = req.body.bankAccountDocument || '';
       existingRequest.status = 'pending';
       existingRequest.adminNote = '';
       existingRequest.reviewedBy = null;
@@ -106,10 +115,43 @@ router.post('/seller-request', verifyUser, async (req, res) => {
       return res.status(200).json({ success: true, message: 'Seller request re-submitted', request: existingRequest });
     }
 
-    const { shopName, location, category, phone, description, image } = req.body;
+    const {
+      shopName, location, category, phone, description, image,
+      aadhaarNumber, aadhaarDocument, panNumber, panDocument,
+      gstNumber, businessLicenseNumber, businessLicenseDocument,
+      bankAccountDocument
+    } = req.body;
 
+    // Validate required business fields
     if (!shopName || !location || !category || !phone) {
       return res.status(400).json({ success: false, error: 'Shop name, location, category, and phone are required' });
+    }
+
+    // Validate required government documents
+    if (!aadhaarNumber || !aadhaarDocument) {
+      return res.status(400).json({ success: false, error: 'Aadhaar number and document upload are required' });
+    }
+    if (!panNumber || !panDocument) {
+      return res.status(400).json({ success: false, error: 'PAN number and document upload are required' });
+    }
+    if (!gstNumber) {
+      return res.status(400).json({ success: false, error: 'GST registration number is required' });
+    }
+
+    // Validate Aadhaar format (12 digits, optional spaces)
+    const aadhaarClean = aadhaarNumber.replace(/\s/g, '');
+    if (!/^\d{12}$/.test(aadhaarClean)) {
+      return res.status(400).json({ success: false, error: 'Aadhaar number must be exactly 12 digits' });
+    }
+
+    // Validate PAN format
+    if (!/^[A-Z]{5}\d{4}[A-Z]$/i.test(panNumber.trim())) {
+      return res.status(400).json({ success: false, error: 'Invalid PAN format. Expected format: ABCDE1234F' });
+    }
+
+    // Validate GST format (15 chars: 2 digits + 10 PAN chars + 1 digit + Z + 1 alphanumeric)
+    if (!/^\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z][A-Z\d]$/i.test(gstNumber.trim())) {
+      return res.status(400).json({ success: false, error: 'Invalid GSTIN format. Expected 15-character GSTIN' });
     }
 
     const sellerRequest = new SellerRequest({
@@ -119,17 +161,31 @@ router.post('/seller-request', verifyUser, async (req, res) => {
       category,
       phone,
       description: description || '',
-      image: image || ''
+      image: image || '',
+      aadhaarNumber: aadhaarClean,
+      aadhaarDocument,
+      panNumber: panNumber.trim().toUpperCase(),
+      panDocument,
+      gstNumber: gstNumber.trim().toUpperCase(),
+      businessLicenseNumber: businessLicenseNumber || '',
+      businessLicenseDocument: businessLicenseDocument || '',
+      bankAccountDocument: bankAccountDocument || ''
     });
 
     await sellerRequest.save();
 
-    res.status(201).json({ success: true, message: 'Seller request submitted! Awaiting admin approval.', request: sellerRequest });
+    res.status(201).json({ success: true, message: 'Seller request submitted! Your documents will be verified by an admin.', request: sellerRequest });
   } catch (error) {
     console.error('Seller request error:', error);
+    // Handle mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ success: false, error: messages[0] });
+    }
     res.status(500).json({ success: false, error: 'Failed to submit seller request' });
   }
 });
+
 
 // GET /api/marketplace/seller-request/my - Get current user's seller request status
 router.get('/seller-request/my', verifyUser, async (req, res) => {
@@ -644,3 +700,4 @@ router.get('/sellers/:id/rating', verifyUser, async (req, res) => {
 });
 
 module.exports = router;
+

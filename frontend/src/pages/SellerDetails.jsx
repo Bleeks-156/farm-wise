@@ -13,7 +13,11 @@ import {
   Upload,
   Loader,
   Package,
-  Star
+  Star,
+  Plus,
+  Box,
+  Check,
+  Edit3
 } from 'lucide-react';
 import '../styles/seller-details.css';
 import API_BASE from '../config/api';
@@ -29,7 +33,7 @@ export default function SellerDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const { isAdmin, token } = useAuth();
+  const { isAdmin, token, user } = useAuth();
   
   const [seller, setSeller] = useState(null);
   const [products, setProducts] = useState([]);
@@ -43,6 +47,15 @@ export default function SellerDetails() {
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [ratingLoading, setRatingLoading] = useState(false);
+
+  // Stock editing state
+  const [editingStock, setEditingStock] = useState(null);
+  const [stockValue, setStockValue] = useState('');
+  const [stockSaving, setStockSaving] = useState(false);
+
+  // Is the logged-in user the owner of this seller page?
+  const isOwner = seller?.user?._id === user?._id || seller?.user === user?._id;
+  const canManage = isAdmin || isOwner;
   
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -58,8 +71,34 @@ export default function SellerDetails() {
 
   useEffect(() => {
     fetchSeller();
-    fetchUserRating();
   }, [id]);
+
+  // Only fetch user rating if logged in and not own shop
+  useEffect(() => {
+    if (seller && !isOwner && token) fetchUserRating();
+  }, [id, seller, isOwner, token]);
+
+  const handleStockUpdate = async (productId) => {
+    if (stockValue === '' || Number(stockValue) < 0) return;
+    setStockSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/marketplace/products/${productId}/stock`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ stock: Number(stockValue) })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProducts(prev => prev.map(p => p._id === productId ? { ...p, stock: Number(stockValue) } : p));
+        setEditingStock(null);
+        setStockValue('');
+      }
+    } catch (err) {
+      console.error('Stock update error:', err);
+    } finally {
+      setStockSaving(false);
+    }
+  };
 
   const fetchUserRating = async () => {
     try {
@@ -258,29 +297,32 @@ export default function SellerDetails() {
                 </div>
               </div>
               
-              <div className="seller-user-rating">
-                <span className="rate-label">Rate this seller:</span>
-                <div className="star-rating">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      className={`star-btn ${(hoverRating || userRating) >= star ? 'active' : ''}`}
-                      onClick={() => handleRating(star)}
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      disabled={ratingLoading}
-                    >
-                      <Star 
-                        size={24} 
-                        fill={(hoverRating || userRating) >= star ? '#f59e0b' : 'none'}
-                        stroke={(hoverRating || userRating) >= star ? '#f59e0b' : 'currentColor'}
-                      />
-                    </button>
-                  ))}
+              {/* Rating - hide for own shop */}
+              {!isOwner && token && (
+                <div className="seller-user-rating">
+                  <span className="rate-label">Rate this seller:</span>
+                  <div className="star-rating">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        className={`star-btn ${(hoverRating || userRating) >= star ? 'active' : ''}`}
+                        onClick={() => handleRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        disabled={ratingLoading}
+                      >
+                        <Star 
+                          size={24} 
+                          fill={(hoverRating || userRating) >= star ? '#f59e0b' : 'none'}
+                          stroke={(hoverRating || userRating) >= star ? '#f59e0b' : 'currentColor'}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  {userRating > 0 && <span className="your-rating">Your rating: {userRating}/5</span>}
                 </div>
-                {userRating > 0 && <span className="your-rating">Your rating: {userRating}/5</span>}
-              </div>
+              )}
 
               <p className="seller-details-location">
                 <MapPin size={18} />
@@ -296,22 +338,24 @@ export default function SellerDetails() {
                 {seller.description || 'No description available.'}
               </p>
 
-              {isAdmin && (
+              {canManage && (
                 <div className="seller-admin-actions">
                   <button 
                     className="admin-action-btn edit-btn"
                     onClick={() => setEditModalOpen(true)}
                   >
                     <Edit2 size={16} />
-                    Edit Seller
+                    Edit Details
                   </button>
-                  <button 
-                    className="admin-action-btn delete-btn"
-                    onClick={() => setDeleteConfirmOpen(true)}
-                  >
-                    <Trash2 size={16} />
-                    Delete
-                  </button>
+                  {isAdmin && (
+                    <button 
+                      className="admin-action-btn delete-btn"
+                      onClick={() => setDeleteConfirmOpen(true)}
+                    >
+                      <Trash2 size={16} />
+                      Delete
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -319,32 +363,76 @@ export default function SellerDetails() {
 
           {/* Products by this seller */}
           <div className="seller-products-section">
-            <h2 className="seller-products-title">
-              <Package size={22} />
-              Products by {seller.name}
-            </h2>
+            <div className="seller-products-header">
+              <h2 className="seller-products-title">
+                <Package size={22} />
+                {isOwner ? 'My Products' : `Products by ${seller.name}`}
+              </h2>
+              {isOwner && (
+                <Link to="/marketplace" className="seller-add-product-btn">
+                  <Plus size={16} />
+                  Add Product
+                </Link>
+              )}
+            </div>
             
             {products.length === 0 ? (
-              <p className="no-products">No products available from this seller yet.</p>
+              <p className="no-products">
+                {isOwner ? 'You haven\'t added any products yet. Go to the Marketplace to add your first product!' : 'No products available from this seller yet.'}
+              </p>
             ) : (
               <div className="seller-products-grid">
                 {products.map((product) => (
-                  <Link 
-                    key={product._id} 
-                    to={`/marketplace/product/${product._id}`}
-                    className="seller-product-card"
-                  >
-                    <img
-                      src={product.image || 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=400&h=260&fit=crop'}
-                      alt={product.name}
-                      className="seller-product-image"
-                    />
+                  <div key={product._id} className="seller-product-card">
+                    <Link to={`/marketplace/product/${product._id}`}>
+                      <img
+                        src={product.image || 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=400&h=260&fit=crop'}
+                        alt={product.name}
+                        className="seller-product-image"
+                      />
+                    </Link>
                     <div className="seller-product-info">
                       <span className="seller-product-category">{product.category}</span>
-                      <h3 className="seller-product-name">{product.name}</h3>
+                      <Link to={`/marketplace/product/${product._id}`} className="seller-product-name-link">
+                        <h3 className="seller-product-name">{product.name}</h3>
+                      </Link>
                       <p className="seller-product-price">₹{product.price}</p>
+
+                      {/* Stock management for owner */}
+                      {isOwner && (
+                        <div className="seller-product-stock">
+                          {editingStock === product._id ? (
+                            <div className="seller-stock-edit">
+                              <input
+                                type="number"
+                                min="0"
+                                value={stockValue}
+                                onChange={(e) => setStockValue(e.target.value)}
+                                className="seller-stock-input"
+                                placeholder="Qty"
+                              />
+                              <button className="seller-stock-save" onClick={() => handleStockUpdate(product._id)} disabled={stockSaving}>
+                                {stockSaving ? <Loader size={12} className="spinner" /> : <Check size={14} />}
+                              </button>
+                              <button className="seller-stock-cancel" onClick={() => { setEditingStock(null); setStockValue(''); }}>
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className={`seller-stock-badge ${product.stock > 0 ? 'in-stock' : 'out-stock'}`}
+                              onClick={() => { setEditingStock(product._id); setStockValue(String(product.stock)); }}
+                              title="Click to edit stock"
+                            >
+                              <Box size={13} />
+                              {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                              <Edit3 size={11} />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}
