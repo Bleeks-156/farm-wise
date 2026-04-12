@@ -6,6 +6,17 @@ import { useTheme } from '../contexts/ThemeContext';
 import '../styles/profile.css';
 import API_BASE from '../config/api';
 
+// Helper: generate a viewable URL for uploaded documents
+// Cloudinary 'raw' PDFs trigger downloads by default, so we use Google Docs Viewer
+const getDocViewUrl = (url) => {
+  if (!url) return '#';
+  const isPdf = url.toLowerCase().includes('.pdf') || url.includes('/raw/upload/');
+  if (isPdf) {
+    return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+  }
+  return url;
+};
+
 export default function Profile() {
   const { user, token, login } = useAuth();
   const { theme } = useTheme();
@@ -798,7 +809,7 @@ export default function Profile() {
                                 <p className="profile-doc-number">XXXX XXXX {req.aadhaarNumber?.slice(-4)}</p>
                               )}
                               {req.aadhaarDocument && (
-                                <a href={req.aadhaarDocument} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
+                                <a href={getDocViewUrl(req.aadhaarDocument)} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
                                   <ExternalLink size={14} /> View Document
                                 </a>
                               )}
@@ -815,7 +826,7 @@ export default function Profile() {
                                 <p className="profile-doc-number">{req.panNumber}</p>
                               )}
                               {req.panDocument && (
-                                <a href={req.panDocument} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
+                                <a href={getDocViewUrl(req.panDocument)} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
                                   <ExternalLink size={14} /> View Document
                                 </a>
                               )}
@@ -844,7 +855,7 @@ export default function Profile() {
                                 <p className="profile-doc-number">{req.businessLicenseNumber}</p>
                               )}
                               {req.businessLicenseDocument && (
-                                <a href={req.businessLicenseDocument} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
+                                <a href={getDocViewUrl(req.businessLicenseDocument)} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
                                   <ExternalLink size={14} /> View Document
                                 </a>
                               )}
@@ -858,7 +869,7 @@ export default function Profile() {
                                 {req.bankAccountDocument ? <span className="profile-doc-status-ok">✓ Provided</span> : <span className="profile-doc-status-optional">Optional</span>}
                               </div>
                               {req.bankAccountDocument && (
-                                <a href={req.bankAccountDocument} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
+                                <a href={getDocViewUrl(req.bankAccountDocument)} target="_blank" rel="noopener noreferrer" className="profile-doc-link">
                                   <ExternalLink size={14} /> View Document
                                 </a>
                               )}

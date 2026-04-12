@@ -49,7 +49,7 @@ const authenticate = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id);
-    
+
     if (!user) {
       return res.status(401).json({ success: false, error: 'User not found' });
     }
@@ -61,22 +61,28 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-// Upload image to Cloudinary
-const uploadToCloudinary = (buffer, folder, resourceType = 'image') => {
+// Upload file to Cloudinary
+const uploadToCloudinary = (buffer, folder, opts = {}) => {
   return new Promise((resolve, reject) => {
-    const options = {
+    const uploadOpts = {
       folder: `farmwise/${folder}`,
-      resource_type: resourceType,
+      resource_type: opts.resourceType || 'image',
     };
-    // Only apply image transformations for image uploads
-    if (resourceType === 'image') {
-      options.transformation = [
+    // Only apply image transformations for non-document image uploads
+    if (uploadOpts.resource_type === 'image' && !opts.isDocument) {
+      uploadOpts.transformation = [
         { width: 500, height: 500, crop: 'limit' },
         { quality: 'auto' }
       ];
     }
+    // Preserve original filename so Cloudinary URL has the correct extension
+    if (opts.originalFilename) {
+      uploadOpts.public_id = opts.originalFilename;
+      uploadOpts.use_filename = true;
+      uploadOpts.unique_filename = true;
+    }
     const uploadStream = cloudinary.uploader.upload_stream(
-      options,
+      uploadOpts,
       (error, result) => {
         if (error) reject(error);
         else resolve(result);
@@ -94,7 +100,7 @@ router.post('/profile', authenticate, upload.single('image'), async (req, res) =
     }
 
     console.log('Uploading file:', req.file.originalname, 'Size:', req.file.size);
-    
+
     let result;
     try {
       result = await uploadToCloudinary(req.file.buffer, 'profiles');
@@ -183,9 +189,19 @@ router.post('/document', authenticate, documentUpload.single('document'), async 
       return res.status(400).json({ success: false, error: 'Invalid document type. Must be one of: ' + validTypes.join(', ') });
     }
 
+    // Extract file extension from original filename to preserve it in URL
+    const path = require('path');
+    const ext = path.extname(req.file.originalname);
+    const baseName = path.basename(req.file.originalname, ext);
+    const safeFilename = `${docType}_${Date.now()}_${baseName}${ext}`;
+
     // Determine resource type based on file mimetype
-    const resourceType = req.file.mimetype === 'application/pdf' ? 'raw' : 'image';
-    const result = await uploadToCloudinary(req.file.buffer, `seller-documents/${docType}`, resourceType);
+    const isPdf = req.file.mimetype === 'application/pdf';
+    const result = await uploadToCloudinary(req.file.buffer, `seller-documents/${docType}`, {
+      resourceType: isPdf ? 'raw' : 'image',
+      isDocument: true,
+      originalFilename: safeFilename,
+    });
 
     res.json({
       success: true,
