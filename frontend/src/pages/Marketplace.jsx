@@ -324,6 +324,11 @@ export default function Marketplace() {
     const form = e.target;
 
     // Validate required document uploads
+    if (!sellerReqImageUrl) {
+      setPurchaseToast({ text: 'Please upload a shop image', type: 'error' });
+      setTimeout(() => setPurchaseToast(null), 3000);
+      return;
+    }
     if (!docUrls.aadhaarDocument) {
       setPurchaseToast({ text: 'Please upload your Aadhaar card document', type: 'error' });
       setTimeout(() => setPurchaseToast(null), 3000);
@@ -753,7 +758,7 @@ export default function Marketplace() {
                   <textarea name="description" rows={2} placeholder="Tell us about your business..." />
                 </label>
                 <div className="marketplace-image-upload">
-                  <span>Shop Image (optional)</span>
+                  <span>Shop Image *</span>
                   <div 
                     className="marketplace-upload-box"
                     onClick={() => sellerReqFileRef.current?.click()}

@@ -97,7 +97,7 @@ router.post('/seller-request', verifyUser, async (req, res) => {
       existingRequest.category = req.body.category;
       existingRequest.phone = req.body.phone;
       existingRequest.description = req.body.description || '';
-      existingRequest.image = req.body.image || '';
+      existingRequest.image = req.body.image;
       // Government documents
       existingRequest.aadhaarNumber = req.body.aadhaarNumber;
       existingRequest.aadhaarDocument = req.body.aadhaarDocument;
@@ -125,6 +125,11 @@ router.post('/seller-request', verifyUser, async (req, res) => {
     // Validate required business fields
     if (!shopName || !location || !category || !phone) {
       return res.status(400).json({ success: false, error: 'Shop name, location, category, and phone are required' });
+    }
+
+    // Validate shop image is provided
+    if (!image) {
+      return res.status(400).json({ success: false, error: 'Shop image is required' });
     }
 
     // Validate required government documents
@@ -161,7 +166,7 @@ router.post('/seller-request', verifyUser, async (req, res) => {
       category,
       phone,
       description: description || '',
-      image: image || '',
+      image: image,
       aadhaarNumber: aadhaarClean,
       aadhaarDocument,
       panNumber: panNumber.trim().toUpperCase(),

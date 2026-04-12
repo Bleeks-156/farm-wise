@@ -114,6 +114,26 @@ app.get('/', (req, res) => {
 app.use((err, req, res, next) => {
   console.error('Error:', err);
 
+  // Handle Multer-specific errors (file upload issues)
+  if (err.name === 'MulterError') {
+    const messages = {
+      LIMIT_FILE_SIZE: 'File is too large. Maximum size is 20MB.',
+      LIMIT_UNEXPECTED_FILE: 'Unexpected file field.',
+    };
+    return res.status(400).json({
+      success: false,
+      error: messages[err.code] || 'File upload error: ' + err.message
+    });
+  }
+
+  // Handle multer file filter errors
+  if (err.message && (err.message.includes('Only image') || err.message.includes('Only image and PDF'))) {
+    return res.status(400).json({
+      success: false,
+      error: err.message
+    });
+  }
+
   // Don't leak error details in production
   const message = process.env.NODE_ENV === 'production'
     ? 'Something went wrong!'

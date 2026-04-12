@@ -1,3 +1,6 @@
+# Proxy API requests to backend on Render
+/api/*  https://farm-wise-backend.onrender.com/api/:splat  200
+
 # Proxy disease API requests through Netlify to HF Spaces
 /disease-api/*  https://bleeks-156-farmwise-disease-api.hf.space/:splat  200
 

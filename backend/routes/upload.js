@@ -23,6 +23,21 @@ const upload = multer({
   }
 });
 
+// Separate multer config for documents (accepts images and PDFs)
+const documentUpload = multer({
+  storage,
+  limits: {
+    fileSize: 20 * 1024 * 1024, // 20MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image and PDF files are allowed'), false);
+    }
+  }
+});
+
 // Auth middleware
 const authenticate = async (req, res, next) => {
   try {
@@ -47,17 +62,21 @@ const authenticate = async (req, res, next) => {
 };
 
 // Upload image to Cloudinary
-const uploadToCloudinary = (buffer, folder) => {
+const uploadToCloudinary = (buffer, folder, resourceType = 'image') => {
   return new Promise((resolve, reject) => {
+    const options = {
+      folder: `farmwise/${folder}`,
+      resource_type: resourceType,
+    };
+    // Only apply image transformations for image uploads
+    if (resourceType === 'image') {
+      options.transformation = [
+        { width: 500, height: 500, crop: 'limit' },
+        { quality: 'auto' }
+      ];
+    }
     const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: `farmwise/${folder}`,
-        resource_type: 'image',
-        transformation: [
-          { width: 500, height: 500, crop: 'limit' },
-          { quality: 'auto' }
-        ]
-      },
+      options,
       (error, result) => {
         if (error) reject(error);
         else resolve(result);
@@ -151,7 +170,7 @@ router.post('/seller', authenticate, upload.single('image'), async (req, res) =>
   }
 });
 // POST /api/upload/document - Upload seller verification document (Aadhaar, PAN, License, Bank)
-router.post('/document', authenticate, upload.single('document'), async (req, res) => {
+router.post('/document', authenticate, documentUpload.single('document'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No document file provided' });
@@ -164,7 +183,9 @@ router.post('/document', authenticate, upload.single('document'), async (req, re
       return res.status(400).json({ success: false, error: 'Invalid document type. Must be one of: ' + validTypes.join(', ') });
     }
 
-    const result = await uploadToCloudinary(req.file.buffer, `seller-documents/${docType}`);
+    // Determine resource type based on file mimetype
+    const resourceType = req.file.mimetype === 'application/pdf' ? 'raw' : 'image';
+    const result = await uploadToCloudinary(req.file.buffer, `seller-documents/${docType}`, resourceType);
 
     res.json({
       success: true,
